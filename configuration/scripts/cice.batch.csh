@@ -52,15 +52,15 @@ set shortcase = `echo ${ICE_CASENAME} | cut -c1-15`
 #==========================================
 
 cat >! ${jobfile} << EOF0
-#!/bin/csh -f 
+#!/bin/csh -f
 EOF0
 
 #==========================================
 
 if (${ICE_MACHINE} =~ cheyenne*) then
 cat >> ${jobfile} << EOFB
-#PBS -j oe 
-###PBS -m ae 
+#PBS -j oe
+###PBS -m ae
 #PBS -V
 #PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
@@ -71,8 +71,8 @@ EOFB
 
 else if (${ICE_MACHINE} =~ hobart*) then
 cat >> ${jobfile} << EOFB
-#PBS -j oe 
-###PBS -m ae 
+#PBS -j oe
+###PBS -m ae
 #PBS -V
 #PBS -q short
 #PBS -N ${ICE_CASENAME}
@@ -82,8 +82,8 @@ EOFB
 else if (${ICE_MACHINE} =~ izumi*) then
 if (${runlength} > 2) set queue = "medium"
 cat >> ${jobfile} << EOFB
-#PBS -j oe 
-###PBS -m ae 
+#PBS -j oe
+###PBS -m ae
 #PBS -V
 #PBS -q ${queue}
 #PBS -N ${ICE_CASENAME}
@@ -296,6 +296,21 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ conda*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ noahday*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ noah*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ a1724548*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB

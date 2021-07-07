@@ -225,6 +225,27 @@ EOFR
 endif
 
 
+#======
+else if (${ICE_MACHINE} =~ noahday*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#======
+else if (${ICE_MACHINE} =~ noah*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#======
+else if (${ICE_MACHINE} =~ a1724548*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
 #=======
 else
   echo "${0} ERROR ${ICE_MACHINE} unknown"
