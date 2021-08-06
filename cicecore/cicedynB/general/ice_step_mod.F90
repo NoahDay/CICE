@@ -105,7 +105,7 @@
       alidr_init(:,:,iblk) = c0
       alidf_init(:,:,iblk) = c0
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -188,7 +188,7 @@
 #ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
 #else
-      logical (kind=log_kind) :: & 
+      logical (kind=log_kind) :: &
          prescribed_ice     ! if .true., use prescribed ice instead of computed
 #endif
       real (kind=dbl_kind), intent(in) :: &
@@ -199,7 +199,7 @@
 
       ! local variables
 #ifdef CICE_IN_NEMO
-      real (kind=dbl_kind)    :: & 
+      real (kind=dbl_kind)    :: &
          raice              ! reciprocal of ice concentration
 #endif
       integer (kind=int_kind) :: &
@@ -283,12 +283,12 @@
       enddo ! j
 #endif
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-      
+
       do j = jlo, jhi
       do i = ilo, ihi
 
@@ -340,16 +340,16 @@
                       uvel         = uvel_center             , &
                       vvel         = vvel_center             , &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
-                      zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   & 
-                      zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   & 
-                      zSin         = trcrn       (i,j,nt_sice:nt_sice+nilyr-1,:,iblk),   & 
-                      alvl         = trcrn       (i,j,nt_alvl,:,iblk),                   & 
-                      vlvl         = trcrn       (i,j,nt_vlvl,:,iblk),                   & 
-                      apnd         = trcrn       (i,j,nt_apnd,:,iblk),                   & 
-                      hpnd         = trcrn       (i,j,nt_hpnd,:,iblk),                   & 
-                      ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   & 
+                      zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
+                      zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   &
+                      zSin         = trcrn       (i,j,nt_sice:nt_sice+nilyr-1,:,iblk),   &
+                      alvl         = trcrn       (i,j,nt_alvl,:,iblk),                   &
+                      vlvl         = trcrn       (i,j,nt_vlvl,:,iblk),                   &
+                      apnd         = trcrn       (i,j,nt_apnd,:,iblk),                   &
+                      hpnd         = trcrn       (i,j,nt_hpnd,:,iblk),                   &
+                      ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   &
                       iage         = trcrn       (i,j,nt_iage,:,iblk),                   &
-                      FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   & 
+                      FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   &
                       aerosno      = aerosno     (:,:,:),      &
                       aeroice      = aeroice     (:,:,:),      &
                       isosno       = isosno      (:,:),        &
@@ -586,7 +586,7 @@
          nltrcr = 0
       endif
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
@@ -599,11 +599,33 @@
 
          ! significant wave height for FSD
          if (tr_fsd) &
-         wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+         !wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+! NOAH DAY debug 004 -----------------------------------------------------------
 
+!wave_spectrum(i,j,1,iblk) = 0.00015429197810590267
+!wave_spectrum(i,j,2,iblk) = 0.002913531381636858
+!wave_spectrum(i,j,3,iblk) = 0.02312942035496235
+!wave_spectrum(i,j,4,iblk) = 0.07201970368623734
+!wave_spectrum(i,j,5,iblk) = 0.06766948103904724
+!wave_spectrum(i,j,6,iblk) = 0.005527883302420378
+!wave_spectrum(i,j,7,iblk) = 3.326293881400488e-05
+!wave_spectrum(i,j,8,iblk) = 6.815936703929992e-10
+!wave_spectrum(i,j,9,iblk) = 2.419401186610744e-20
+!wavefreq = (/0.04118,     0.045298,    0.0498278,   0.05481058,  0.06029164, &
+!                   0.06632081,  0.07295289,  0.08024818,  0.08827299,  0.09710029, &
+!                   0.10681032,  0.11749136,  0.1292405,   0.14216454,  0.15638101, &
+!                   0.17201911,  0.18922101,  0.20814312,  0.22895744,  0.25185317, &
+!                   0.27703848,  0.30474234,  0.33521661,  0.36873826,  0.40561208/)
+
+      ! boundaries of bin n are at f(n)*sqrt(1/C) and f(n)*sqrt(C)\
+!dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
+        wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+
+ write (nu_diag,*) wave_spectrum(i,j,:,iblk)
+!-------------------------------------------------
          call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
-                      hin_max    = hin_max   (:),          &   
+                      hin_max    = hin_max   (:),          &
                       aicen      = aicen     (i,j,:,iblk), &
                       vicen      = vicen     (i,j,:,iblk), &
                       vsnon      = vsnon     (i,j,:,iblk), &
@@ -693,8 +715,8 @@
           dvidt, & ! change in ice volume per time step
           dagedt   ! change in ice age per time step
 
-      integer (kind=int_kind) :: & 
-         iblk,  & ! block index 
+      integer (kind=int_kind) :: &
+         iblk,  & ! block index
          i,j,   & ! horizontal indices
          ntrcr, & !
          nt_iage  !
@@ -727,9 +749,9 @@
          do i = 1, nx_block
 
       !-----------------------------------------------------------------
-      ! Aggregate the updated state variables (includes ghost cells). 
-      !----------------------------------------------------------------- 
- 
+      ! Aggregate the updated state variables (includes ghost cells).
+      !-----------------------------------------------------------------
+
 !        if (tmask(i,j,iblk)) &
             call icepack_aggregate(ncat  = ncat,                  &
                                    aicen = aicen(i,j,:,iblk),     &
@@ -828,6 +850,11 @@
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
+
+         ! Noah Day debug 008 -----------------------------------------------------------
+              !write (nu_diag,*) "wave_spectrum ="
+              !write (nu_diag,*) wave_spectrum
+         ! ------------------------------------------------------------------------------
 
          do j = jlo, jhi
          do i = ilo, ihi
@@ -928,14 +955,14 @@
 
       integer (kind=int_kind), intent(in) :: &
          ndtd, & ! number of dynamics subcycles
-         iblk    ! block index 
+         iblk    ! block index
 
       ! local variables
 
       type (block) :: &
          this_block      ! block information for current block
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j,            & ! horizontal indices
          ntrcr,           & !
@@ -1110,7 +1137,7 @@
 
       allocate(ztrcr_sw(nbtrcr_sw,ncat))
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
@@ -1185,7 +1212,7 @@
                          l_print_point=l_print_point)
 
          endif
-         
+
          if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then
            do n = 1, ncat
               do k = 1, nbtrcr_sw
@@ -1302,24 +1329,24 @@
             j = indxj(ij)
 
             call icepack_atm_boundary(sfctype = 'ocn',    &
-                         Tsf     = sst        (i,j,iblk), &    
+                         Tsf     = sst        (i,j,iblk), &
                          potT    = potT       (i,j,iblk), &
-                         uatm    = uatm       (i,j,iblk), &   
-                         vatm    = vatm       (i,j,iblk), &   
-                         wind    = wind       (i,j,iblk), &   
-                         zlvl    = zlvl       (i,j,iblk), &   
-                         Qa      = Qa         (i,j,iblk), &     
+                         uatm    = uatm       (i,j,iblk), &
+                         vatm    = vatm       (i,j,iblk), &
+                         wind    = wind       (i,j,iblk), &
+                         zlvl    = zlvl       (i,j,iblk), &
+                         Qa      = Qa         (i,j,iblk), &
                          rhoa    = rhoa       (i,j,iblk), &
-                         strx    = strairx_ocn(i,j,iblk), & 
-                         stry    = strairy_ocn(i,j,iblk), & 
-                         Tref    = Tref_ocn   (i,j,iblk), & 
-                         Qref    = Qref_ocn   (i,j,iblk), & 
-                         delt    = delt       (i,j),      &    
+                         strx    = strairx_ocn(i,j,iblk), &
+                         stry    = strairy_ocn(i,j,iblk), &
+                         Tref    = Tref_ocn   (i,j,iblk), &
+                         Qref    = Qref_ocn   (i,j,iblk), &
+                         delt    = delt       (i,j),      &
                          delq    = delq       (i,j),      &
                          lhcoef  = lhcoef     (i,j),      &
                          shcoef  = shcoef     (i,j),      &
-                         Cdn_atm = Cdn_atm    (i,j,iblk), & 
-                         Cdn_atm_ratio_n = Cdn_atm_ratio(i,j,iblk))    
+                         Cdn_atm = Cdn_atm    (i,j,iblk), &
+                         Cdn_atm_ratio_n = Cdn_atm_ratio(i,j,iblk))
          enddo ! ij
 
          call icepack_warnings_flush(nu_diag)
@@ -1383,10 +1410,10 @@
                                  n_doc, n_dic,  n_don, n_fed, n_fep
       use ice_flux, only: meltbn, melttn, congeln, snoicen, &
                           sst, sss, fsnow, meltsn
-      use ice_flux_bgc, only: hin_old, flux_bio, flux_bio_atm, faero_atm, & 
+      use ice_flux_bgc, only: hin_old, flux_bio, flux_bio_atm, faero_atm, &
           nit, amm, sil, dmsp, dms, algalN, doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: aicen_init, vicen_init, aicen, vicen, vsnon, &
-          trcrn, vsnon_init, aice0                    
+          trcrn, vsnon_init, aice0
       use ice_timers, only: timer_bgc, ice_timer_start, ice_timer_stop
 
       real (kind=dbl_kind), intent(in) :: &
@@ -1433,7 +1460,7 @@
 
       call ice_timer_start(timer_bgc) ! biogeochemistry
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
@@ -1441,7 +1468,7 @@
 
       ! Define ocean concentrations for tracers used in simulation
       do j = jlo, jhi
-      do i = ilo, ihi    
+      do i = ilo, ihi
 
          call icepack_load_ocean_bio_array(max_nbtrcr = icepack_max_nbtrcr, &
                 max_algae = icepack_max_algae, max_don = icepack_max_don, &
@@ -1457,8 +1484,8 @@
                 ocean_bio_all = ocean_bio_all(i,j,:,iblk))
 
          do mm = 1,nbtrcr
-            ocean_bio(i,j,mm,iblk) = ocean_bio_all(i,j,bio_index_o(mm),iblk)  
-         enddo  ! mm    
+            ocean_bio(i,j,mm,iblk) = ocean_bio_all(i,j,bio_index_o(mm),iblk)
+         enddo  ! mm
          if (tr_zaero) then
             do mm = 1, n_zaero  ! update aerosols
                flux_bio_atm(i,j,nlt_zaero(mm),iblk) = faero_atm(i,j,mm,iblk)
@@ -1493,13 +1520,13 @@
                               snow_bio_net = snow_bio_net(i,j,1:nbtrcr, iblk), &
                               fswthrun     = fswthrun    (i,j,:,        iblk), &
                               sice_rho     = sice_rho    (i,j,:,        iblk), &
-                              fzsal        = fzsal       (i,j,          iblk), &   
+                              fzsal        = fzsal       (i,j,          iblk), &
                               fzsal_g      = fzsal_g     (i,j,          iblk), &
                               meltbn       = meltbn      (i,j,:,        iblk), &
                               melttn       = melttn      (i,j,:,        iblk), &
                               congeln      = congeln     (i,j,:,        iblk), &
-                              snoicen      = snoicen     (i,j,:,        iblk), & 
-                              sst          = sst         (i,j,          iblk), &    
+                              snoicen      = snoicen     (i,j,:,        iblk), &
+                              sst          = sst         (i,j,          iblk), &
                               sss          = sss         (i,j,          iblk), &
                               fsnow        = fsnow       (i,j,          iblk), &
                               meltsn       = meltsn      (i,j,:,        iblk), &
