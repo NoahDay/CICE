@@ -63,7 +63,7 @@ DESCRIPTION
 
 EXAMPLES
   cice.build
-    will build the model using the standard approach with all the bells and whistles.  
+    will build the model using the standard approach with all the bells and whistles.
     This is recommended.
   cice.build --help
     will show cice.build help
@@ -71,7 +71,7 @@ EXAMPLES
     will call gmake directly and make the target
   cice.build clean
     is an example of a targeted build
-  cice.build targets 
+  cice.build targets
     is an example of a targeted build that shows the valid Makefile targets
   cice.build --version
     will call make directly and pass --version as an argument to make
@@ -79,7 +79,7 @@ EXAMPLES
     will call make directly and pass arguments and/or a target to make
 
 ADDITIONAL INFORMATION
-  The argument implementation supports -h or --help as a first argument.  Otherwise, 
+  The argument implementation supports -h or --help as a first argument.  Otherwise,
   it passes all other arguments directly to make and calls it directly.  In this
   mode, most of the cice.build script features are by-passed.  The recommended
   way to run the script is without arguments.
@@ -136,6 +136,7 @@ ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/io/$IODIR
 ${ICE_SANDBOX}/cicecore/cicedynB/infrastructure/comm/${ICE_COMMDIR}
 ${ICE_SANDBOX}/cicecore/shared
 ${ICE_SANDBOX}/icepack/columnphysics
+${ICE_SANDBOX}/icepack/wave_ice_code
 EOF
 
 if !($?ICE_MACHINE_BLDTHRDS) then
@@ -237,4 +238,3 @@ if ( ${ICE_TEST} != ${ICE_SPVAL} ) then
   echo "PASS ${ICE_TESTNAME} build" >> ${ICE_CASEDIR}/test_output
   echo "PEND ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
 endif
-
