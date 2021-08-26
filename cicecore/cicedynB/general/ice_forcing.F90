@@ -5381,8 +5381,8 @@
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 ! Noah Day debug 004 -----------------------------------------------------------
-        !write (nu_diag,*) "wave_spectrum_profile ="
-        !write (nu_diag,*) wave_spectrum_profile
+        write (nu_diag,*) "wave_spectrum_profile ="
+        write (nu_diag,*) wave_spectrum_profile
 ! ------------------------------------------------------------------------------
 
          ! read more realistic data from a file
