@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c1000, c4, p25
+      use ice_constants, only: c0, c1, c10, c30, c1000, c4, p25, p01
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -31,6 +31,7 @@
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_tracer_indices
+
 
       implicit none
       private
@@ -536,7 +537,7 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd, nfreq
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
           meltl, frazil_diag
@@ -546,6 +547,7 @@
       use ice_state, only: aice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
+      use icepack_floe ! noah day wim
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -572,6 +574,9 @@
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
+      ! noah day WIM
+      real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff
+! --------------------------
       call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -591,7 +596,11 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-
+      !write (nu_diag,*) ilo
+       !write (nu_diag,*) ihi
+        !write (nu_diag,*) jlo
+         !write (nu_diag,*) jhi
+         !write (nu_diag,*) iblk
       do j = jlo, jhi
       do i = ilo, ihi
 
@@ -601,27 +610,14 @@
          if (tr_fsd) &
          !wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 ! NOAH DAY debug 004 -----------------------------------------------------------
-
-!wave_spectrum(i,j,1,iblk) = 0.00015429197810590267
-!wave_spectrum(i,j,2,iblk) = 0.002913531381636858
-!wave_spectrum(i,j,3,iblk) = 0.02312942035496235
-!wave_spectrum(i,j,4,iblk) = 0.07201970368623734
-!wave_spectrum(i,j,5,iblk) = 0.06766948103904724
-!wave_spectrum(i,j,6,iblk) = 0.005527883302420378
-!wave_spectrum(i,j,7,iblk) = 3.326293881400488e-05
-!wave_spectrum(i,j,8,iblk) = 6.815936703929992e-10
-!wave_spectrum(i,j,9,iblk) = 2.419401186610744e-20
-!wavefreq = (/0.04118,     0.045298,    0.0498278,   0.05481058,  0.06029164, &
-!                   0.06632081,  0.07295289,  0.08024818,  0.08827299,  0.09710029, &
-!                   0.10681032,  0.11749136,  0.1292405,   0.14216454,  0.15638101, &
-!                   0.17201911,  0.18922101,  0.20814312,  0.22895744,  0.25185317, &
-!                   0.27703848,  0.30474234,  0.33521661,  0.36873826,  0.40561208/)
-
-      ! boundaries of bin n are at f(n)*sqrt(1/C) and f(n)*sqrt(C)\
-!dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
+! attenuation step: exponential
+!meylan coefficient calculation here
+        alpha_coeff = fn_Attn_MBK(wavefreq)
+        write (nu_diag,*) alpha_coeff
+        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,j,:,iblk)*EXP(-alpha_coeff*(c30-j)) ! instead of p01 calculate meylan et al. 2014 coefficient
         wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 
- write (nu_diag,*) wave_spectrum(i,j,:,iblk)
+        !write (nu_diag,*) wave_sig_ht(i,j,iblk)
 !-------------------------------------------------
          call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &

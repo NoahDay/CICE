@@ -5364,7 +5364,7 @@
          file=__FILE__, line=__LINE__)
 
       ! if no wave data is provided, wave_spectrum is zero everywhere
-      wave_spectrum(:,:,:,:) = c0
+      wave_spectrum(:,:,:,:) = c1 !noah day c0
       wave_spec_dir = ocn_data_dir
       debug_forcing = .true.
 
@@ -5381,8 +5381,10 @@
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 ! Noah Day debug 004 -----------------------------------------------------------
-        write (nu_diag,*) "wave_spectrum_profile ="
-        write (nu_diag,*) wave_spectrum_profile
+
+        !wave_spectrum()
+        !write (nu_diag,*) "ice_forcing.F90; wave_spectrum is "
+        !write (nu_diag,*) wave_spectrum_profile
 ! ------------------------------------------------------------------------------
 
          ! read more realistic data from a file

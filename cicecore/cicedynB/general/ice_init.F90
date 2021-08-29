@@ -5,7 +5,7 @@
 ! authors Elizabeth C. Hunke and William H. Lipscomb, LANL
 !         C. M. Bitz, UW
 !
-! 2004 WHL: Block structure added 
+! 2004 WHL: Block structure added
 ! 2006 ECH: Added namelist variables, warnings.
 !           Replaced old default initial ice conditions with 3.14 version.
 !           Converted to free source form (F90).
@@ -90,7 +90,7 @@
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir,    wave_spec_file,  &
-          oceanmixed_file, restore_ocn,   trestore, & 
+          oceanmixed_file, restore_ocn,   trestore, &
           ice_data_type
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
@@ -144,7 +144,7 @@
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
-      integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
+      integer (kind=int_kind) :: rpcesm, rplvl, rptopo
       real (kind=dbl_kind) :: Cf, ksno, puny
       character (len=char_len) :: abort_list
       character (len=64) :: tmpstr
@@ -262,11 +262,11 @@
       istep0 = 0             ! no. of steps taken in previous integrations,
                              ! real (dumped) or imagined (to set calendar)
 #ifndef CESMCOUPLED
-      dt = 3600.0_dbl_kind   ! time step, s      
+      dt = 3600.0_dbl_kind   ! time step, s
 #endif
       numin = 11             ! min allowed unit number
       numax = 99             ! max allowed unit number
-      npt = 99999            ! total number of time steps (dt) 
+      npt = 99999            ! total number of time steps (dt)
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       debug_model  = .false. ! debug output
@@ -285,7 +285,7 @@
       histfreq(3) = 'd'      ! output frequency option for different streams
       histfreq(4) = 'm'      ! output frequency option for different streams
       histfreq(5) = 'y'      ! output frequency option for different streams
-      histfreq_n(:) = 1      ! output frequency 
+      histfreq_n(:) = 1      ! output frequency
       histfreq_base = 'zero' ! output frequency reference date
       hist_avg = .true.      ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
@@ -340,7 +340,7 @@
       krdg_partic = 1        ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
-      Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
+      Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging
       ksno = 0.3_dbl_kind    ! snow thermal conductivity
       dxrect = 0.0_dbl_kind  ! user defined grid spacing in cm in x direction
       dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
@@ -404,7 +404,7 @@
       hp1       = 0.01_dbl_kind   ! critical pond lid thickness for topo ponds
       hs0       = 0.03_dbl_kind   ! snow depth for transition to bare sea ice (m)
       hs1       = 0.03_dbl_kind   ! snow depth for transition to bare pond ice (m)
-      dpscale   = c1              ! alter e-folding time scale for flushing 
+      dpscale   = c1              ! alter e-folding time scale for flushing
       frzpnd    = 'cesm'          ! melt pond refreezing parameterization
       rfracmin  = 0.15_dbl_kind   ! minimum retained fraction of meltwater
       rfracmax  = 0.85_dbl_kind   ! maximum retained fraction of meltwater
@@ -464,7 +464,7 @@
       restart_age  = .false. ! ice age restart
       tr_FY        = .false. ! ice age
       restart_FY   = .false. ! ice age restart
-      tr_lvl       = .false. ! level ice 
+      tr_lvl       = .false. ! level ice
       restart_lvl  = .false. ! level ice restart
       tr_pond_cesm = .false. ! CESM melt ponds
       restart_pond_cesm = .false. ! melt ponds restart
@@ -476,7 +476,7 @@
       restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
-      tr_fsd       = .false. ! floe size distribution
+      tr_fsd       = .true. ! floe size distribution ! noah day wim changed from false
       restart_fsd  = .false. ! floe size distribution restart
 
       n_iso = 0
@@ -521,7 +521,7 @@
             nml_error = -1
          else
             nml_error =  1
-         endif 
+         endif
 
          do while (nml_error > 0)
             print*,'Reading setup_nml'
@@ -553,6 +553,7 @@
       endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
+        ! noah day wim commenting
          call abort_ice(subname//'ERROR: reading namelist', &
             file=__FILE__, line=__LINE__)
       endif
@@ -626,7 +627,7 @@
       call broadcast_scalar(diag_file,            master_task)
       do n = 1, max_nstrm
          call broadcast_scalar(histfreq(n),       master_task)
-      enddo  
+      enddo
       call broadcast_array(histfreq_n,            master_task)
       call broadcast_scalar(histfreq_base,        master_task)
       call broadcast_scalar(hist_avg,             master_task)
@@ -1123,7 +1124,7 @@
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=F and fbot_xfer_type=Cdn_ocn'
          abort_list = trim(abort_list)//":19"
       endif
-      
+
       if(history_precision .ne. 4 .and. history_precision .ne. 8) then
          write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_list = trim(abort_list)//":22"
@@ -1160,12 +1161,12 @@
             endif
             abort_list = trim(abort_list)//":60"
          endif
-         
+
          if (trim(algo_nonlin) == 'picard') then
             ! Picard solver is implemented in the Anderson solver; reset number of saved residuals to zero
             dim_andacc = 0
          endif
-         
+
          if (.not. (trim(precond) == 'ident' .or. trim(precond) == 'diag' .or. trim(precond) == 'pgmres')) then
             if (my_task == master_task) then
                write(nu_diag,*) subname//' ERROR: unknown precond: '//precond
@@ -1173,7 +1174,7 @@
             endif
             abort_list = trim(abort_list)//":61"
          endif
-         
+
          if (.not. (trim(ortho_type) == 'cgs' .or. trim(ortho_type) == 'mgs')) then
             if (my_task == master_task) then
                write(nu_diag,*) subname//' ERROR: unknown ortho_type: '//ortho_type
@@ -1353,7 +1354,7 @@
                tmpstr2 = ' : no seabed stress parameterization'
             endif
             write(nu_diag,1010) ' seabed_stress    = ', seabed_stress,trim(tmpstr2)
-            if (seabed_stress) then 
+            if (seabed_stress) then
                write(nu_diag,1030) ' seabed method    = ',trim(seabed_stress_method)
                if (seabed_stress_method == 'LKD') then
                   write(nu_diag,1002) ' k1               = ', k1, ' : free parameter for landfast ice'
@@ -1767,11 +1768,11 @@
              trim(ocn_data_type) /= 'default') then
             write(nu_diag,1031) ' ocn_data_dir     = ', trim(ocn_data_dir)
             write(nu_diag,1011) ' restore_ocn      = ', restore_ocn
-         endif 
+         endif
          write(nu_diag,1011) ' restore_ice      = ', restore_ice
          if (restore_ice .or. restore_ocn) &
          write(nu_diag,1021) ' trestore         = ', trestore
- 
+
          write(nu_diag,*) ' '
          write(nu_diag,'(a31,2f8.2)') 'Diagnostic point 1: lat, lon =', &
                             latpnt(1), lonpnt(1)
@@ -1951,7 +1952,7 @@
       !-----------------------------------------------------------------
 
       if (my_task == master_task) then
- 
+
          if (nilyr < 1) then
             write(nu_diag,*) subname//' ERROR: Must have at least one ice layer'
             write(nu_diag,*) subname//' ERROR:   nilyr =', nilyr
@@ -2041,11 +2042,11 @@
       do it = 1, ntrcr
          ! mask for base quantity on which tracers are carried
          if (trcr_depend(it) == 0) then      ! area
-            trcr_base(it,1) = c1 
+            trcr_base(it,1) = c1
          elseif (trcr_depend(it) == 1) then  ! ice volume
-            trcr_base(it,2) = c1 
+            trcr_base(it,2) = c1
          elseif (trcr_depend(it) == 2) then  ! snow volume
-            trcr_base(it,3) = c1 
+            trcr_base(it,3) = c1
          else
             trcr_base(it,1) = c1    ! default: ice area
             trcr_base(it,2) = c0
@@ -2089,7 +2090,7 @@
       !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2200,7 +2201,7 @@
          iglob(nx_block)   , & ! global indices
          jglob(ny_block)       !
 
-      character(len=char_len_long), intent(in) :: & 
+      character(len=char_len_long), intent(in) :: &
          ice_ic      ! method of ice cover initialization
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
@@ -2212,8 +2213,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tair    , & ! air temperature  (K)
-         Tf      , & ! freezing temperature (C) 
-         sst         ! sea surface temperature (C) 
+         Tf      , & ! freezing temperature (C)
+         sst         ! sea surface temperature (C)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), intent(in) :: &
          salinz  , & ! initial salinity profile
@@ -2230,7 +2231,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          uvel    , & ! ice velocity
-         vvel        ! 
+         vvel        !
 
       ! local variables
 
@@ -2259,7 +2260,7 @@
 
       real (kind=dbl_kind), parameter :: &
          hsno_init = 0.20_dbl_kind   , & ! initial snow thickness (m)
-         edge_init_nh =  70._dbl_kind, & ! initial ice edge, N.Hem. (deg) 
+         edge_init_nh =  70._dbl_kind, & ! initial ice edge, N.Hem. (deg)
          edge_init_sh = -60._dbl_kind    ! initial ice edge, S.Hem. (deg)
 
       logical (kind=log_kind) :: tr_brine, tr_lvl
@@ -2294,7 +2295,7 @@
             aicen(i,j,n) = c0
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
-            trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature
             if (ntrcr >= 2) then
                do it = 2, ntrcr
                   trcrn(i,j,it,n) = c0
@@ -2335,7 +2336,7 @@
             enddo
 
          elseif (trim(ice_data_type) == 'boxslotcyl') then
-         
+
             hbar = c1  ! initial ice thickness (1 m)
             do n = 1, ncat
                hinit(n) = c0
@@ -2345,14 +2346,14 @@
                   ainit(n) = c1 !echmod symm
                endif
             enddo
-         
+
          else
 
       ! initial category areas in cells with ice
          hbar = c3  ! initial ice thickness with greatest area
-                    ! Note: the resulting average ice thickness 
+                    ! Note: the resulting average ice thickness
                     ! tends to be less than hbar due to the
-                    ! nonlinear distribution of ice thicknesses 
+                    ! nonlinear distribution of ice thicknesses
          sum = c0
          do n = 1, ncat
             if (n < ncat) then
@@ -2460,7 +2461,7 @@
 
                ! surface temperature
                trcrn(i,j,nt_Tsfc,n) = Tsfc ! deg C
-               ! ice enthalpy, salinity 
+               ! ice enthalpy, salinity
                do k = 1, nilyr
                   trcrn(i,j,nt_qice+k-1,n) = qin(k)
                   trcrn(i,j,nt_sice+k-1,n) = salinz(i,j,k)
@@ -2474,7 +2475,7 @@
 
             enddo               ! ij
          enddo                  ! ncat
-         
+
          ! velocity initialization for special tests
          if (trim(ice_data_type) == 'boxslotcyl') then
             do j = 1, ny_block
@@ -2504,7 +2505,7 @@
                                       nx_block, ny_block, &
                                       n,        ainit,    &
                                       iglob,    jglob)
-      
+
       use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
       use ice_domain_size, only: nx_global, ny_global, ncat
       use ice_grid, only: dxrect, dyrect
@@ -2515,31 +2516,31 @@
          iglob(nx_block)   , & ! global indices
          jglob(ny_block)   , &
          n                     ! thickness category index
-         
+
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit ! initial area
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
          aicen ! concentration of ice
-         
+
       ! local variables
-      
+
       logical :: in_slot, in_cyl, in_slotted_cyl
-      
+
       real (kind=dbl_kind), dimension (2) :: &
          slot_x, &  ! geometric limits of the slot
          slot_y
-      
-      real (kind=dbl_kind) :: & 
+
+      real (kind=dbl_kind) :: &
          diam    , & ! cylinder diameter
          radius  , & ! cylinder radius
          center_x, & ! cylinder center
          center_y, &
          width   , & ! slot width
          length      ! slot height
-      
+
       character(len=*), parameter :: subname = '(boxslotcyl_data_aice)'
-      
+
       ! Geometric configuration of the slotted cylinder
       diam     = p3 *dxrect*(nx_global-1)
       center_x = p5 *dxrect*(nx_global-1)
@@ -2547,23 +2548,23 @@
       radius   = p5*diam
       width    = p166*diam
       length   = c5*p166*diam
-      
+
       slot_x(1) = center_x - width/c2
       slot_x(2) = center_x + width/c2
       slot_y(1) = center_y - radius
       slot_y(2) = center_y + (length - radius)
-      
+
       ! check if grid point is inside slotted cylinder
       in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
-                (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
+                (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. &
                 (dyrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
                 (dyrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
-                
+
       in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
                      (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
-      
+
       in_slotted_cyl = in_cyl .and. .not. in_slot
-      
+
       if (in_slotted_cyl) then
          aicen(i,j,n) = ainit(n)
       else
@@ -2583,7 +2584,7 @@
                                      nx_block, ny_block, &
                                      iglob,    jglob,   &
                                      uvel,     vvel)
-      
+
       use ice_constants, only: c2, c12, p5, cm_to_m
       use ice_domain_size, only: nx_global, ny_global
       use ice_grid, only: dxrect
@@ -2605,9 +2606,9 @@
          max_vel        , & ! max velocity
          domain_length  , & ! physical domain length
          period             ! rotational period
-      
+
       character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
-      
+
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
