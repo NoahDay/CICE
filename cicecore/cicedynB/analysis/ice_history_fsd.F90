@@ -21,7 +21,7 @@
       private
       public :: accum_hist_fsd, init_hist_fsd_2D, init_hist_fsd_3Df, &
                 init_hist_fsd_4Df
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -35,6 +35,11 @@
            f_hice_ww    = 'x', f_fsdrad      = 'x', &
            f_fsdperim   = 'x'
 
+! noah day wim -----------------------------------------------------------------
+      character (len=max_nstrm), public :: f_peak_period = 'm'
+! ------------------------------------------------------------------------------
+
+
       !---------------------------------------------------------------
       ! namelist variables
       !---------------------------------------------------------------
@@ -46,7 +51,9 @@
            f_dafsd_weld, f_wave_sig_ht, &
            f_aice_ww   , f_diam_ww    , &
            f_hice_ww   , f_fsdrad     , &
-           f_fsdperim
+           f_fsdperim  , f_peak_period ! noah day wim adding f_peak_period
+
+
 
       !---------------------------------------------------------------
       ! field indices
@@ -59,7 +66,7 @@
            n_dafsd_weld, n_wave_sig_ht, &
            n_aice_ww   , n_diam_ww    , &
            n_hice_ww   , n_fsdrad     , &
-           n_fsdperim
+           n_fsdperim  , n_peak_period ! noah day wim
 
 !=======================================================================
 
@@ -130,6 +137,10 @@
       call broadcast_scalar (f_fsdrad, master_task)
       call broadcast_scalar (f_fsdperim, master_task)
 
+! noah day wim -----------------------------------------------------------------
+      call broadcast_scalar (f_peak_period, master_task)
+! ------------------------------------------------------------------------------
+
       ! 2D variables
 
       do ns = 1, nstreams
@@ -163,6 +174,14 @@
             "floe size distribution, perimeter",                  &
             "per unit ice area", c1, c0, ns, f_fsdperim)
 
+! noah day wim -----------------------------------------------------------------
+      if (f_peak_period(1:1) /= 'x') &
+         call define_hist_field(n_peak_period,"peak_period","1",tstr2D, tcstr, &
+             "peak period of wind and swell waves",  &
+             "from attenuated spectrum in ice", c1, c0,     &
+             ns, f_peak_period)
+! ------------------------------------------------------------------------------
+
 
       enddo ! nstreams
 
@@ -176,6 +195,7 @@
          f_dafsd_wave  = 'x'
          f_dafsd_weld  = 'x'
          f_wave_sig_ht = 'x'
+         f_peak_period = 'x' ! noah day wim
          f_fsdrad      = 'x'
          f_fsdperim    = 'x'
          if (.not. wave_spec) then
@@ -270,12 +290,12 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsdn(1:1) /= 'x') &
-            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
+            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, &
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
          endif ! if (histfreq(ns) /= 'x') then
-      enddo ! ns 
+      enddo ! ns
 
       endif ! tr_fsd
 
@@ -295,6 +315,10 @@
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+
+! noah day wim -----------------------------------------------------------------
+      use ice_arrays_column, only: peak_period
+! ------------------------------------------------------------------------------
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -333,6 +357,13 @@
       if (f_wave_sig_ht(1:1)/= 'x') &
          call accum_hist_field(n_wave_sig_ht,   iblk, &
                                wave_sig_ht(:,:,iblk), a2D)
+
+! noah day wim -----------------------------------------------------------------
+      if (f_peak_period(1:1)/= 'x') &
+         call accum_hist_field(n_peak_period,   iblk, &
+                               peak_period(:,:,iblk), a2D)
+! ------------------------------------------------------------------------------
+
 
       if (f_aice_ww(1:1)/= 'x') then
          do j = 1, ny_block
@@ -395,7 +426,7 @@
       if (f_fsdrad(1:1) /= 'x') then
          do j = 1, ny_block
          do i = 1, nx_block
-            worka(i,j) = c0            
+            worka(i,j) = c0
             if (aice_init(i,j,iblk) > puny) then
              do k = 1, nfsd_hist
                 do n = 1, ncat_hist
@@ -447,7 +478,7 @@
          end do
          call accum_hist_field(n_afsd-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
- 
+
       if (f_dafsd_newi(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_newi(:,:,1:nfsd_hist,iblk), a3Df)
@@ -470,7 +501,7 @@
 
       if (f_afsdn(1:1) /= 'x') then
          do n = 1, ncat_hist
-         do k = 1, nfsd_hist 
+         do k = 1, nfsd_hist
          do j = 1, ny_block
          do i = 1, nx_block
             workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &
