@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c10, c30, c1000, c4, p25, p01
+      use ice_constants, only: c0, c1, c2, c3, c4, c10, c30, c110, c300, c1000, p25, p01
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -548,6 +548,8 @@
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
       use icepack_floe ! noah day wim
+      use icepack_parameters, only: gravit, pi ! noah day wim
+      use ice_arrays_column, only: peak_period ! noah day wim
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -574,9 +576,19 @@
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
-      ! noah day WIM
-      real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff
-! --------------------------
+      ! noah day WIM------------------------------------------------------------
+      real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff ! attenuation coefficient
+      real(kind=dbl_kind) :: conc_coeff, Dav, Lcell, m0, m2
+      ! concentration coefficient, average floe size, length of cell, zeroth moment, second moment
+
+      real(kind=dbl_kind), dimension (nfreq) :: &
+         t_period,      &  ! wave period
+         lambda_wtr_in, &  ! wave length
+         k_wtr_in           ! wave number
+      integer (kind=int_kind) :: ii ! index
+
+      ! ------------------------------------------------------------------------
+
       call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -596,11 +608,7 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-      !write (nu_diag,*) ilo
-       !write (nu_diag,*) ihi
-        !write (nu_diag,*) jlo
-         !write (nu_diag,*) jhi
-         !write (nu_diag,*) iblk
+
       do j = jlo, jhi
       do i = ilo, ihi
 
@@ -609,15 +617,28 @@
          ! significant wave height for FSD
          if (tr_fsd) &
          !wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
-! NOAH DAY debug 004 -----------------------------------------------------------
+! NOAH DAY WIM 014 -----------------------------------------------------------
 ! attenuation step: exponential
-!meylan coefficient calculation here
-        alpha_coeff = fn_Attn_MBK(wavefreq)
-        write (nu_diag,*) alpha_coeff
-        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,j,:,iblk)*EXP(-alpha_coeff*(c30-j)) ! instead of p01 calculate meylan et al. 2014 coefficient
-        wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+        t_period = 2*pi*wavefreq
+        lambda_wtr_in = gravit*(t_period**c2)/(c2*pi) ! deep water dispersion
+        k_wtr_in     = c2*pi/lambda_wtr_in
+! average floe size:
+        Dav = c300 ! setting mean diameter to 300 m for now
+        conc_coeff = SUM(aicen(i,j,:,iblk)) ! summing over ice thickness categories
+                    !SUM(aicen(i,j:jhi,:,iblk))/(jhi-j)
+        alpha_coeff = fn_Attn_MBK(t_period)*conc_coeff/Dav
+        Lcell = (c30-j)*c3*c110*c1000 ! (30-j) is the distance of wave advection
+        ! one degree is about 110 km, 3 for grid, 110 for km, 1000 for conversion from m to km
+        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,j,:,iblk)*EXP(-alpha_coeff*Lcell)
 
-        !write (nu_diag,*) wave_sig_ht(i,j,iblk)
+        m0 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)) ! zeroth moment
+        m2 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)**2) ! second moment
+        wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+        peak_period(i,j,iblk) = 2*pi*SQRT(m0/m2)
+
+        !write (nu_diag,*) 'The value of j is:'
+        !write (nu_diag,*) j
+        !write (nu_diag,*) aicen(i,j,:,iblk)
 !-------------------------------------------------
          call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
@@ -810,6 +831,7 @@
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
           timer_fsd
+
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
