@@ -103,7 +103,7 @@
     restart_iso  = .false.
     tr_aero      = .false.
     restart_aero = .false.
-    tr_fsd       = .false.
+    tr_fsd       = .true.
     restart_fsd  = .false.
 /
 
@@ -645,4 +645,5 @@
     f_aice_ww      = 'x'
     f_diam_ww      = 'x'
     f_hice_ww      = 'x'
+    f_peak_period  = 'x'
 /
