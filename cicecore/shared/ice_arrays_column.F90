@@ -288,6 +288,11 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
         wave_sig_ht        ! significant height of waves (m)
 
+      ! Noah Day WIM -----------------------------------------------------------
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+        peak_period        ! significant height of waves (m)
+      ! ------------------------------------------------------------------------
+
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          wavefreq,      &  ! wave frequencies
          dwavefreq         ! wave frequency bin widths
@@ -435,6 +440,7 @@
          wavefreq       (nfreq)     , & ! wave frequency
          dwavefreq      (nfreq)     , & ! wave frequency bin widths
          wave_sig_ht    (nx_block,ny_block,          max_blocks), & !
+         peak_period    (nx_block,ny_block,          max_blocks), & ! Noah Day WIM
          wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
          d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !
