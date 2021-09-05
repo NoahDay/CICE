@@ -548,8 +548,10 @@
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
       use icepack_floe ! noah day wim
-      use icepack_parameters, only: gravit, pi ! noah day wim
+      use icepack_parameters, only: gravit, pi, rhow ! noah day wim
       use ice_arrays_column, only: peak_period ! noah day wim
+      use m_prams_waveice, only: gravity, water_density, reldens, poisson, gamma, Y ! noah day wim
+      use m_fzero ! noah day wim
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -578,14 +580,19 @@
 
       ! noah day WIM------------------------------------------------------------
       real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff ! attenuation coefficient
-      real(kind=dbl_kind) :: conc_coeff, Dav, Lcell, m0, m2
+      real(kind=dbl_kind) :: conc_coeff, Dav, Lcell, m0, m2, hice
       ! concentration coefficient, average floe size, length of cell, zeroth moment, second moment
+      ! ice thickness
+      real(kind=dbl_kind) :: kappa, fr, mass, Es, om_crit
 
       real(kind=dbl_kind), dimension (nfreq) :: &
          t_period,      &  ! wave period
          lambda_wtr_in, &  ! wave length
-         k_wtr_in           ! wave number
-      integer (kind=int_kind) :: ii ! index
+         k_wtr_in,      &  ! wave number
+         k_ice,         &
+         lam_ice,       &
+         fn_DispRel_ice_inf
+      integer (kind=int_kind) :: ii, jj ! index
 
       ! ------------------------------------------------------------------------
 
@@ -612,32 +619,67 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tmask(i,j,iblk)) then
+         if (tmask(i,j,iblk)) then ! true means ice exists - noah day wim
 
          ! significant wave height for FSD
          if (tr_fsd) &
          !wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 ! NOAH DAY WIM 014 -----------------------------------------------------------
-! attenuation step: exponential
+! IMPLEMENTING SUB_UNCOUPLED
         t_period = 2*pi*wavefreq
-        lambda_wtr_in = gravit*(t_period**c2)/(c2*pi) ! deep water dispersion
-        k_wtr_in     = c2*pi/lambda_wtr_in
+        lambda_wtr_in = gravit*(t_period**c2)/(c2*pi) ! wave length, deep water dispersion
+        k_wtr_in     = c2*pi/lambda_wtr_in ! wave number
+! calculations line 174
+        hice  = SUM(aicen(i,j,:,iblk)/vicen(i,j,:,iblk)) ! volume = fractional area x thickness
+        mass  = reldens*hice ! scaled mass
+        fr    = Y*(hice**3)/12/water_density/gravity/(1-poisson**2) ! rhow is sea water density
+
+        do jj=1,nfreq
+          kappa           = t_period(jj)**2d0/gravity
+        end do
+! fix this section !!!!
+        !fn_DispRel_ice_inf = (1d0-(mass*kappa)+(fr*(k_wtr_in**4d0)))*k_wtr_in - kappa
+
+        !write (nu_diag,*) fn_DispRel_ice_inf
+
+        !do jj=1,nfreq
+          !k_ice(jj)     = zero(0d0,max(kappa/tanh(kappa),sqrt(sqrt(kappa*mass/fr))), &
+          !                      toli,toli,fn_DispRel_ice_inf(jj))
+          !lam_ice(jj)   = 2d0*pi/k_ice(jj)
+        !end do
+! !!!
+
+! call sub_StrainSpec(S_init, Es)
+  ! mom0_eps = dot_product(wt_int,dum_vec)
+  ! Es = 2d0*sqrt(mom0_eps)
+        m0 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)) ! zeroth moment
+        Es = c2*sqrt(m0)
+
+! call sub_WavelenSpec(S_init, lam_init)
+
+        m2 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)**2) ! second moment
+        om_crit = sqrt(m2/m0)
+        kappa = om_crit**2d0/gravity
+        ! wlng_crest = 2d0*pi/zero(0d0,max(kappa/tanh(kappa),sqrt(sqrt(kappa*mass/fr))), &
+                                 !toli,toli,fn_DispRel_ice_inf)
+
+! attenuation step: exponential
+
 ! average floe size:
         Dav = c300 ! setting mean diameter to 300 m for now
-        conc_coeff = SUM(aicen(i,j,:,iblk)) ! summing over ice thickness categories
+        conc_coeff = SUM(aicen(i,j,:,iblk)) ! finding total concentration by summing over ice thickness categories
                     !SUM(aicen(i,j:jhi,:,iblk))/(jhi-j)
         alpha_coeff = fn_Attn_MBK(t_period)*conc_coeff/Dav
         Lcell = (c30-j)*c3*c110*c1000 ! (30-j) is the distance of wave advection
         ! one degree is about 110 km, 3 for grid, 110 for km, 1000 for conversion from m to km
-        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,j,:,iblk)*EXP(-alpha_coeff*Lcell)
+        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,30,:,iblk)*EXP(-alpha_coeff*Lcell)
+        ! update cos(0) to cos(th) at some point
 
-        m0 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)) ! zeroth moment
-        m2 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)**2) ! second moment
         wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
         peak_period(i,j,iblk) = 2*pi*SQRT(m0/m2)
 
-        !write (nu_diag,*) 'The value of j is:'
-        !write (nu_diag,*) j
+        !write (nu_diag,*) 'The floe radius centre is:'
+        !write (nu_diag,*) floe_rad_c
         !write (nu_diag,*) aicen(i,j,:,iblk)
 !-------------------------------------------------
          call icepack_step_therm2(dt=dt, ncat=ncat, &
