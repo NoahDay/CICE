@@ -12,7 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c1, c2, c3, c4, c10, c30, c110, c300, c1000, p25, p01
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c10, c30, c110, c300, c1000, p25, p01
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -534,25 +534,34 @@
           wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
-      use ice_blocks, only: block, get_block
-      use ice_calendar, only: yday
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_calendar, only: yday, istep ! Noah Day WIM, Adding istep.
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd, nfreq
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
-          meltl, frazil_diag
+          meltl, frazil_diag, ifd, swh, mwd, ppd
+          ! Noah Day WIM, Adding ifd, swh, mwd, ppd
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, TLAT, TLON, HTE
+          ! Noah Day WIM, Adding TLAT and TLON, HTE
       use ice_state, only: aice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
-          trcr_base, n_trcr_strata, nt_strata
-      use icepack_floe ! noah day wim
-      use icepack_parameters, only: gravit, pi, rhow ! noah day wim
-      use ice_arrays_column, only: peak_period ! noah day wim
-      use m_prams_waveice, only: gravity, water_density, reldens, poisson, gamma, Y ! noah day wim
-      use m_fzero ! noah day wim
+          trcr_base, n_trcr_strata, nt_strata, aice_init, floediam_init
+          ! Noah Day WIM, Adding aice_init, floediam_init
 
+! Noah Day WIM, adding dependencies for the wave propagation code. -------------
+      use icepack_floe
+      use icepack_parameters, only: gravit, pi, rhow, c180, puny
+      use ice_arrays_column, only: peak_period, mean_wave_dir
+      use m_prams_waveice, only: gravity, water_density, reldens, poisson, &
+                                 gamma, Y, WIM, cmt
+      use m_fzero
+      use m_waveice, only: sub_Uncoupled
+      use icepack_tracers, only: nt_fsd
+      use ice_constants, only: max_floediam, wavemask
+! ------------------------------------------------------------------------------
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -579,24 +588,58 @@
       character(len=*), parameter :: subname = '(step_therm2)'
 
       ! noah day WIM------------------------------------------------------------
-      real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff ! attenuation coefficient
-      real(kind=dbl_kind) :: conc_coeff, Dav, Lcell, m0, m2, hice
+      real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff, wave_spectrum_in, wave_spectrum_out ! attenuation coefficient
+      real(kind=dbl_kind) :: hice_init, Length_cell, aice_in!conc_coeff, Dav, Lcell, m0, m2, ice_thick
       ! concentration coefficient, average floe size, length of cell, zeroth moment, second moment
       ! ice thickness
-      real(kind=dbl_kind) :: kappa, fr, mass, Es, om_crit
+      !real(kind=dbl_kind) :: kappa, fr, mass, Es, om_crit
 
-      real(kind=dbl_kind), dimension (nfreq) :: &
-         t_period,      &  ! wave period
-         lambda_wtr_in, &  ! wave length
-         k_wtr_in,      &  ! wave number
-         k_ice,         &
-         lam_ice,       &
-         fn_DispRel_ice_inf
-      integer (kind=int_kind) :: ii, jj ! index
+      !real(kind=dbl_kind), dimension (nfreq) :: &
+      !   t_period,      &  ! wave period
+      !    lambda_wtr_in, &  ! wave length
+      !    k_wtr_in,      &  ! wave number
+      !   k_ice,         &
+      !   lam_ice,       &
+      !   fn_DispRel_ice_inf
+      integer (kind=int_kind) :: ii, jj, n ! index
+      integer (kind=int_kind) :: nthh, tmtt, idll
+
+      ! Wave-ice variables:
+      real (kind=dbl_kind), dimension(nx_block,ny_block) :: &
+         ov_vol, ov_conc
+
+      integer (kind=int_kind), save :: &
+          icells       ! number of cells with aicen > puny
+      !   wavcells        ! LB (Oct `13): number of cells to apply wave-ice code in
+
+   !	integer, parameter          ::   &
+   !	    nedge=5		 ! LB (Oct `13): ice-edge
+
+      integer (kind=4)          ::   &
+         wavemask_dyn		 ! LB (Sept `14): dynamic ice edge/wavemask
+
+       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
+          indxi, indxj     ! indirect indices for cells with aicen > puny
+
+       ! LB: added 20.05.15 for WW3 data integration
+       integer, dimension(1)                 :: dumlatloc
+       real (kind=dbl_kind)   			    :: mn_lat
+
+       !real (kind=dbl_kind) :: &
+          !uvel_center, &     ! cell-centered velocity, x component (m/s)
+          !vvel_center, &     ! cell-centered velocity, y component (m/s)
+          !puny               ! a very small number
+      !-----------------------------------------------------------------
+      ! ice state at start of time step, saved for later in the step
+      !-----------------------------------------------------------------
+
+      !real (kind=dbl_kind), dimension(nx_block,ny_block,nblocks) :: &
+      ! aice_init, &     ! initial concentration of ice, for diagnostics
+      !   floediam_init    ! initial floe diameter, for diagnostics (LB 08.07.14)
 
       ! ------------------------------------------------------------------------
 
-      call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
+      call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal, puny_out=puny)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -616,72 +659,184 @@
       jlo = this_block%jlo
       jhi = this_block%jhi
 
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+! TURNING ON WAVES IN ICE MODULE
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+      if (WIM.eq.1) then
+      !-----------------------------------------------------------------
+      ! Save the ice area passed to the coupler (so that history fields
+      !  can be made consistent with coupler fields).
+      ! Save the initial ice area and volume in each category.
+      !-----------------------------------------------------------------
+      do j = 1, ny_block
+      do i = 1, nx_block
+         aice_init (i,j,  iblk) = aice (i,j,  iblk)
+      enddo
+      enddo
+
+
+      do n = 1, ncat
+      do j = 1, ny_block
+      do i = 1, nx_block
+              aicen_init(i,j,:,iblk) = aicen(i,j,:,iblk)
+              vicen_init(i,j,:,iblk) = vicen(i,j,:,iblk)
+      enddo
+      enddo
+      enddo
+
+      !-----------------------------------------------------------------
+      ! MIZ FLOE SIZE DISTRIBUTION: BASED ON OCEAN WAVES - Noah Day WIM
+      !-----------------------------------------------------------------
+
+       ! find cells with aice <= puny
+       icells = 0
+       wavemask_dyn = 0
+       do jj = jlo, jhi
+        do ii = ilo, ihi
+         if (aice(ii,jj,iblk) .gt. puny) then
+          icells = icells + 1
+          indxi(icells) = ii
+          indxj(icells) = jj
+          if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
+           wavemask_dyn = jj
+          endif
+         endif
+       enddo               ! ii
+     enddo                ! jj
+
+
+  if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON
+
+    if (cmt.ne.0) then
+        write(nu_diag,*) '----------------------------------------------------'
+        write(nu_diag,*) '----------------------------------------------------'
+        write(nu_diag,*) '----------------------------------------------------'
+        write(nu_diag,*) 'LB: CICE_RunMod -> Running wave-ice interaction code:', &
+         ' istep=', istep !, 'dt=', dt
+
+         mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
+         write(nu_diag,*) 'TLAT=', c180*mn_lat/pi
+     endif ! cmt
+
+       do i=1,nx_block
+         mwd(i,wavemask_dyn,iblk) = pi ! directly southward
+       enddo
+       !endif	! IF OVERWRITE_DIRS
+
+       !call init_wave_spec_usr(wavemask_dyn)
+
+       !if (1.eq.0) then ! reinitialise floe diameters (no memory)
+        write(nu_diag,*) '                -> Reinitialising floe sizes'
+        call init_floe_0
+       !else             ! initialise ifd using ifloe tracer values
+        !write(nu_diag,*) '                -> Remembering floe sizes'
+        ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
+       !endif
+
+       ! overall volume & overall concentration (wrt thickness categories)
+       do j = 1, ny_block
+        do i = 1, nx_block
+         ov_conc(i,j)  = c0
+         ov_vol(i,j)   = c0
+        enddo
+       enddo
+
+       do j = wavemask,2,-1
+        do i = 1, nx_block
+         if (tmask(i,j,iblk)) then
+          do n = 1, ncat
+           ov_conc(i,j)  = ov_conc(i,j)  + aicen(i,j,n,iblk)
+           ov_vol(i,j)   = ov_vol(i,j)   + vicen(i,j,n,iblk)
+          enddo
+         endif
+        enddo
+      enddo
+
+      !---------------------------------------------------------------------------
+      ! Noah Day WIM, Initialising the significant wave height and peak period.
+      do j = 1, ny_block
+       do i = 1, nx_block
+        swh(i,j,iblk)  = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))+c3
+        ! INITIALISING WAVES AT 3m
+        ! THIS COULD BE A GOOD SPOT FOR READING IN DATA but check what Luke did
+        ppd(i,j,iblk)   = c5*SQRT(swh(i,j,iblk))
+       enddo
+      enddo
+      !---------------------------------------------------------------------------
+
+      call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
+                              dt,              & ! dt
+                              tmask(:,:,iblk), & ! tmask
+                              HTE(:,:,iblk),   & ! Lcell
+                              swh(:,:,iblk),   & ! loc_swh
+                              ppd(:,:,iblk),   & ! loc_ppd
+                              mwd(:,:,iblk),   & ! loc_mwd
+                              ifd(:,:,iblk),   & ! ifloe
+                              ov_conc, ov_vol, & ! afice, vfice
+                              wavemask_dyn)      ! dum_wavemask
+
+  endif          ! ENDIF c300
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!        END WAVE-ICE CODE       !!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!noah day commenting out 15/9   ! set ifloe=0 in cells with aice<=puny
+   do j = jlo, jhi
+    do i = ilo, ihi
+     if (aice(i,j,iblk) .le. puny) then
+     !trcrn(i,j,nt_ifloe,1,iblk) = c0
+     !ifd(i,j,iblk)              = c0
+    endif
+    enddo 	! i
+ enddo  ! j
+
+   ! must set ifloe consistently across ncat
+   do n = 1, ncat
+    do j = 1, ny_block
+     do i = 1, nx_block
+      trcrn(i,j,nt_fsd,n,iblk)  = ifd(i,j,iblk)  ! trcrn(i,j,nt_ifloe,1,iblk)
+     enddo
+    enddo
+   enddo
+
+   ! initialise floe diameters after breaking but before thermodynamics
+   !if (tr_fsd) then
+  !  do j = 1, ny_block
+  !   do i = 1, nx_block
+  !    floediam_init (i,j,  iblk) = trcrn(i,j,nt_fsd,1,iblk)
+  !   enddo
+  !  enddo
+  !endif
+
+
+  ! Linking back to CICE 6 code --------------------------------------------------
+  ! Update SWH and PPD
+  do j = 1, ny_block
+   do i = 1, nx_block
+     wave_sig_ht(i,j,iblk) = swh(i,j,iblk)
+     peak_period(i,j,iblk) = ppd(i,j,iblk)
+     mean_wave_dir(i,j,iblk) = mwd(i,j,iblk)
+   enddo
+  enddo
+
+  !-------------------------------------------------------------------------------
+  ! TURNING OFF WAVES IN ICE MODULE
+  endif ! WIM
+  !-------------------------------------------------------------------------------
+
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tmask(i,j,iblk)) then ! true means ice exists - noah day wim
+      if (tmask(i,j,iblk)) then ! true means ice exists - Noah Day WIM
 
-         ! significant wave height for FSD
-         if (tr_fsd) &
-         !wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
-! NOAH DAY WIM 014 -----------------------------------------------------------
-! IMPLEMENTING SUB_UNCOUPLED
-        t_period = 2*pi*wavefreq
-        lambda_wtr_in = gravit*(t_period**c2)/(c2*pi) ! wave length, deep water dispersion
-        k_wtr_in     = c2*pi/lambda_wtr_in ! wave number
-! calculations line 174
-        hice  = SUM(aicen(i,j,:,iblk)/vicen(i,j,:,iblk)) ! volume = fractional area x thickness
-        mass  = reldens*hice ! scaled mass
-        fr    = Y*(hice**3)/12/water_density/gravity/(1-poisson**2) ! rhow is sea water density
-
-        do jj=1,nfreq
-          kappa           = t_period(jj)**2d0/gravity
-        end do
-! fix this section !!!!
-        !fn_DispRel_ice_inf = (1d0-(mass*kappa)+(fr*(k_wtr_in**4d0)))*k_wtr_in - kappa
-
-        !write (nu_diag,*) fn_DispRel_ice_inf
-
-        !do jj=1,nfreq
-          !k_ice(jj)     = zero(0d0,max(kappa/tanh(kappa),sqrt(sqrt(kappa*mass/fr))), &
-          !                      toli,toli,fn_DispRel_ice_inf(jj))
-          !lam_ice(jj)   = 2d0*pi/k_ice(jj)
-        !end do
-! !!!
-
-! call sub_StrainSpec(S_init, Es)
-  ! mom0_eps = dot_product(wt_int,dum_vec)
-  ! Es = 2d0*sqrt(mom0_eps)
-        m0 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)) ! zeroth moment
-        Es = c2*sqrt(m0)
-
-! call sub_WavelenSpec(S_init, lam_init)
-
-        m2 = SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)**2) ! second moment
-        om_crit = sqrt(m2/m0)
-        kappa = om_crit**2d0/gravity
-        ! wlng_crest = 2d0*pi/zero(0d0,max(kappa/tanh(kappa),sqrt(sqrt(kappa*mass/fr))), &
-                                 !toli,toli,fn_DispRel_ice_inf)
-
-! attenuation step: exponential
-
-! average floe size:
-        Dav = c300 ! setting mean diameter to 300 m for now
-        conc_coeff = SUM(aicen(i,j,:,iblk)) ! finding total concentration by summing over ice thickness categories
-                    !SUM(aicen(i,j:jhi,:,iblk))/(jhi-j)
-        alpha_coeff = fn_Attn_MBK(t_period)*conc_coeff/Dav
-        Lcell = (c30-j)*c3*c110*c1000 ! (30-j) is the distance of wave advection
-        ! one degree is about 110 km, 3 for grid, 110 for km, 1000 for conversion from m to km
-        wave_spectrum(i,j,:,iblk) = wave_spectrum(i,30,:,iblk)*EXP(-alpha_coeff*Lcell)
-        ! update cos(0) to cos(th) at some point
-
-        wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
-        peak_period(i,j,iblk) = 2*pi*SQRT(m0/m2)
-
-        !write (nu_diag,*) 'The floe radius centre is:'
-        !write (nu_diag,*) floe_rad_c
-        !write (nu_diag,*) aicen(i,j,:,iblk)
-!-------------------------------------------------
+        ! significant wave height for FSD
+         if (tr_fsd) then
+           if (WIM.eq.0) then ! Noah Day WIM, if WIM is off: calculate SWH from dummy data
+             wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+           endif ! WIM
+        endif ! tr_fsd
          call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
                       hin_max    = hin_max   (:),          &
@@ -911,10 +1066,6 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         ! Noah Day debug 008 -----------------------------------------------------------
-              !write (nu_diag,*) "wave_spectrum ="
-              !write (nu_diag,*) wave_spectrum
-         ! ------------------------------------------------------------------------------
 
          do j = jlo, jhi
          do i = ilo, ihi
