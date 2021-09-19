@@ -33,7 +33,6 @@
 ! 2004: Block structure added by William Lipscomb
 ! 2006: Converted to free form source (F90) by Elizabeth Hunke
 
-! noah day 001 - do i need to add nt_ifloe and trcrn
       module ice_state
 
       use ice_kinds_mod
@@ -120,13 +119,20 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         aice_init       ! initial concentration of ice, for diagnostics
+         aice_init, &       ! initial concentration of ice, for diagnostics
+         floediam_init    ! initial floe diameter, for diagnostics Noah Day wim
 
       real (kind=dbl_kind), &
          dimension(:,:,:,:), allocatable, public :: &
          aicen_init  , & ! initial ice concentration, for linear ITD
          vicen_init  , & ! initial ice volume (m), for linear ITD
          vsnon_init      ! initial snow volume (m), for aerosol
+
+! Noah Day WIM, --------------------------------------------------------
+      integer (kind=int_kind) :: &
+         nt_ifloe     ! ice floe dimension
+      !         nt_wspec     ! wave spec dimension
+! ----------------------------------------------------------------------
 
 !=======================================================================
 
