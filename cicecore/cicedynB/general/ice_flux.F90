@@ -37,16 +37,16 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
 
-       ! in from atmos (if .not.calc_strair)  
+       ! in from atmos (if .not.calc_strair)
          strax   , & ! wind stress components (N/m^2)
-         stray   , & ! 
+         stray   , & !
 
        ! in from ocean
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          ss_tltx , & ! sea surface slope, x-direction (m/m)
          ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for seabed stress calc (landfast ice) 
+         hwater  , & ! water depth for seabed stress calc (landfast ice)
 
        ! out to atmosphere
          strairxT, & ! stress on ice by air, x-direction
@@ -81,7 +81,7 @@
          dvirdgdt, & ! rate of ice volume ridged (m/s)
          opening     ! rate of opening due to divergence/shear (1/s)
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
        ! ridging diagnostics in categories
          dardg1ndt, & ! rate of area loss by ridging ice (1/s)
@@ -92,7 +92,7 @@
          ardgn,     & ! fractional area of ridged ice
          vrdgn,     & ! volume of ridged ice
          araftn,    & ! rafting ice area
-         vraftn,    & ! rafting ice volume 
+         vraftn,    & ! rafting ice volume
          aredistn,  & ! redistribution function: fraction of new ridge area
          vredistn     ! redistribution function: fraction of new ridge volume
 
@@ -141,7 +141,7 @@
        ! NOTE: when in CICE_IN_NEMO mode, these are gridbox mean fields,
        ! not per ice area. When in standalone mode, these are per ice area.
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn_f   , & ! net flux to top surface, excluding fcondtop
          fcondtopn_f, & ! downward cond flux at top surface (W m-2)
@@ -164,9 +164,14 @@
          Tf      , & ! freezing temperature (C)
          qdp     , & ! deep ocean heat flux (W/m^2), negative upward
          hmix    , & ! mixed layer depth (m)
-         daice_da    ! data assimilation concentration increment rate 
+         daice_da, & ! Noah Day WIM,    ! data assimilation concentration increment rate
                      ! (concentration s-1)(only used in hadgem drivers)
-
+! Noah Day WIM, ----------------------------------------------------------------
+        ifd     , & ! ice floe diameter (m)
+        swh     , & ! significant wave height (m)
+        mwd     , & ! mean wave direction (Rads)
+        ppd         ! wave peak period (s)
+! ------------------------------------------------------------------------------
        ! out to atmosphere (if calc_Tsfc)
        ! note Tsfc is in ice_state.F
 
@@ -210,8 +215,8 @@
          dimension(:,:,:,:), allocatable, public :: &
          albcnt       ! counter for zenith angle
 
-       ! out to ocean 
-       ! (Note CICE_IN_NEMO does not use these for coupling.  
+       ! out to ocean
+       ! (Note CICE_IN_NEMO does not use these for coupling.
        !  It uses fresh_ai,fsalt_ai,fhocn_ai and fswthru_ai)
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fpond   , & ! fresh water flux to ponds (kg/m^2/s)
@@ -242,7 +247,7 @@
          snoicen         ! snow-ice formation in category n (m)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         keffn_top       ! effective thermal conductivity of the top ice layer 
+         keffn_top       ! effective thermal conductivity of the top ice layer
                          ! on categories (W/m^2/K)
 
       ! quantities passed from ocean mixed layer to atmosphere
@@ -285,8 +290,8 @@
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
-         
-      real (kind=dbl_kind), & 
+
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
          fcondtopn,& ! category fcondtop
@@ -297,10 +302,10 @@
       ! As above but these remain grid box mean values i.e. they are not
       ! divided by aice at end of ice_dynamics.  These are used in
       ! CICE_IN_NEMO for coupling and also for generating
-      ! ice diagnostics and history files as these are more accurate. 
+      ! ice diagnostics and history files as these are more accurate.
       ! (The others suffer from problem of incorrect values at grid boxes
       !  that change from an ice free state to an icy state.)
-    
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fresh_ai, & ! fresh water flux to ocean (kg/m^2/s)
          fsalt_ai, & ! salt flux to ocean (kg/m^2/s)
@@ -314,7 +319,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fswthrun_ai  ! per-category fswthru * ai (W/m^2)
- 
+
       logical (kind=log_kind), public :: send_i2x_per_cat = .false.
 
       !-----------------------------------------------------------------
@@ -325,12 +330,12 @@
          rside   , & ! fraction of ice that melts laterally
          fside   , & ! lateral heat flux (W/m^2)
          fsw     , & ! incoming shortwave radiation (W/m^2)
-         coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon 
+         coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
          rdg_shear   ! shear term for ridging (1/s)
- 
+
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
-         salinz    ,&   ! initial salinity  profile (ppt)   
+         salinz    ,&   ! initial salinity  profile (ppt)
          Tmltz          ! initial melting temperature (^oC)
 
 !=======================================================================
@@ -339,7 +344,7 @@
 
 !=======================================================================
 !
-! Allocate space for all variables 
+! Allocate space for all variables
 !
       subroutine alloc_flux
 
@@ -347,12 +352,12 @@
 
       allocate( &
          strax      (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
-         stray      (nx_block,ny_block,max_blocks), & ! 
+         stray      (nx_block,ny_block,max_blocks), & !
          uocn       (nx_block,ny_block,max_blocks), & ! ocean current, x-direction (m/s)
          vocn       (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
          ss_tltx    (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
          ss_tlty    (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
-         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice) 
+         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice)
          strairxT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
@@ -495,7 +500,7 @@
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
          fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
-         coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon 
+         coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
          rdg_shear  (nx_block,ny_block,max_blocks), & ! shear term for ridging (1/s)
          dardg1ndt  (nx_block,ny_block,ncat,max_blocks), & ! rate of area loss by ridging ice (1/s)
@@ -506,7 +511,7 @@
          ardgn      (nx_block,ny_block,ncat,max_blocks), & ! fractional area of ridged ice
          vrdgn      (nx_block,ny_block,ncat,max_blocks), & ! volume of ridged ice
          araftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice area
-         vraftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice volume 
+         vraftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice volume
          aredistn   (nx_block,ny_block,ncat,max_blocks), & ! redistribution function: fraction of new ridge area
          vredistn   (nx_block,ny_block,ncat,max_blocks), & ! redistribution function: fraction of new ridge volume
          fsurfn_f   (nx_block,ny_block,ncat,max_blocks), & ! net flux to top surface, excluding fcondtop
@@ -525,8 +530,15 @@
          fsensn     (nx_block,ny_block,ncat,max_blocks), & ! category sensible heat flux
          flatn      (nx_block,ny_block,ncat,max_blocks), & ! category latent heat flux
          albcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for zenith angle
-         salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)   
+         salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
+! Noah Day, WIM ----------------------------------------------------------------
+         ifd        (nx_block,ny_block,max_blocks), & ! ice floe diameter (m)
+         swh        (nx_block,ny_block,max_blocks), & ! significant wave height (m)
+         mwd        (nx_block,ny_block,max_blocks), & ! mean wave direction (Rads)
+         ppd        (nx_block,ny_block,max_blocks), & ! wave peak period (s)
+! ------------------------------------------------------------------------------
+
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
@@ -632,7 +644,7 @@
          fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)
          fsensn_f   (:,:,:,:) =  c0           ! sensible heat flux (W/m^2)
-      endif !   
+      endif !
 
       fiso_atm  (:,:,:,:) = c0           ! isotope deposition rate (kg/m2/s)
       faero_atm (:,:,:,:) = c0           ! aerosol deposition rate (kg/m2/s)
@@ -675,7 +687,7 @@
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
       fswint_ai(:,:,:) = c0
-      flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
+      flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
       evaps   (:,:,:) = c0
@@ -719,7 +731,7 @@
       fdon   (:,:,:,:)= c0
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
-      
+
       allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
       fswthrun_ai(:,:,:,:) = c0
 
@@ -729,7 +741,7 @@
 
       coszen  (:,:,:) = c0            ! Cosine of the zenith angle
       fsw     (:,:,:) = c0            ! shortwave radiation (W/m^2)
-      scale_factor(:,:,:) = c1        ! shortwave scaling factor 
+      scale_factor(:,:,:) = c1        ! shortwave scaling factor
       wind    (:,:,:) = sqrt(uatm(:,:,:)**2 &
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
@@ -899,8 +911,8 @@
       snowfrac (:,:,:) = c0
       frazil_diag (:,:,:) = c0
 
-      ! drag coefficients are computed prior to the atmo_boundary call, 
-      ! during the thermodynamics section 
+      ! drag coefficients are computed prior to the atmo_boundary call,
+      ! during the thermodynamics section
       Cdn_ocn(:,:,:) = dragio
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
@@ -1079,8 +1091,8 @@
 
       ! zsalinity fluxes
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
-          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)  
-          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s) 
+          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)
+          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s)
 
       ! isotopes
       real (kind=dbl_kind), dimension(nx_block,ny_block,icepack_max_iso), &
@@ -1134,8 +1146,8 @@
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
             alidf   (i,j) = alidf   (i,j) * ar
-            fzsal   (i,j) = fzsal   (i,j) * ar  
-            fzsal_g (i,j) = fzsal_g (i,j) * ar  
+            fzsal   (i,j) = fzsal   (i,j) * ar
+            fzsal_g (i,j) = fzsal_g (i,j) * ar
             flux_bio (i,j,:) = flux_bio (i,j,:) * ar
             faero_ocn(i,j,:) = faero_ocn(i,j,:) * ar
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
@@ -1164,10 +1176,10 @@
             fswthru_idf (i,j) = c0
             alvdr   (i,j) = c0  ! zero out albedo where ice is absent
             alidr   (i,j) = c0
-            alvdf   (i,j) = c0 
+            alvdf   (i,j) = c0
             alidf   (i,j) = c0
-            fzsal   (i,j) = c0  
-            fzsal_g (i,j) = c0 
+            fzsal   (i,j) = c0
+            fzsal_g (i,j) = c0
             flux_bio (i,j,:) = c0
             faero_ocn(i,j,:) = c0
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0
@@ -1178,8 +1190,8 @@
       enddo                     ! j
 
       ! Scale fluxes for history output
-      if (present(fsurf) .and. present(fcondtop) ) then 
-     
+      if (present(fsurf) .and. present(fcondtop) ) then
+
         do j = 1, ny_block
         do i = 1, nx_block
            if (tmask(i,j) .and. aice(i,j) > c0) then
@@ -1192,9 +1204,9 @@
            endif                  ! tmask and aice > 0
         enddo                     ! i
         enddo                     ! j
-      
+
       endif                       ! present(fsurf & fcondtop)
-      
+
       end subroutine scale_fluxes
 
 !=======================================================================
