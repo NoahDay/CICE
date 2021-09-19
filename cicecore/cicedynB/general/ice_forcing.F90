@@ -5335,11 +5335,11 @@
       use ice_constants, only: c0, p5
       use ice_domain_size, only: nfreq
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
-      ! Noah Day WIM -----------------------------------------------------
+! Noah Day WIM -----------------------------------------------------------------
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block
-! -----------------------------------------------------------------------
+! ------------------------------------------------------------------------------
       ! local variables
       integer (kind=int_kind) :: &
          fid, &                  ! file id for netCDF routines
@@ -5354,15 +5354,8 @@
 
 ! Noah Day WIM -----------------------------------------------------------------
 integer (kind=int_kind) :: &
-   iblk, i,j           ! loop indices
-
+   iblk, i, j           ! loop indices
 ! ------------------------------------------------------------------------------
-
-! Noah Day debug 002 -----------------------------------------------------------
-            !write (nu_diag,*) "wave_spectrum_profile ="
-            !write(nu_diag,*) wave_spectrum_profile
-! ------------------------------------------------------------------------------
-
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
@@ -5379,11 +5372,6 @@ integer (kind=int_kind) :: &
       wave_spec_dir = ocn_data_dir
       debug_forcing = .true.
 
-! Noah Day debug 003 -----------------------------------------------------------
-      !write (nu_diag,*) "wave_spectrum ="
-      !write (nu_diag,*) wave_spectrum
-! ------------------------------------------------------------------------------
-
       ! wave spectrum and frequencies
       if (wave_spec) then
       ! get hardwired frequency bin info and a dummy wave spectrum profile
@@ -5392,17 +5380,13 @@ integer (kind=int_kind) :: &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 ! Noah Day debug 004 -----------------------------------------------------------
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-           do i = 1, nx_block
-             wave_spectrum(i,j,:,iblk) = wave_spectrum_profile + p5 ! adding 0.5 just to make big waves
+        do iblk = 1, nblocks
+           do j = 1, ny_block
+             do i = 1, nx_block
+               wave_spectrum(i,j,:,iblk) = wave_spectrum_profile
+             enddo
            enddo
-         enddo
-      enddo ! nblocks
-
-        !write (nu_diag,*) "ice_forcing.F90; wave_spectrum is "
-        !write (nu_diag,*) SHAPE(wave_spectrum)
-        !write (nu_diag,*) wave_spectrum(1,1,:,1)
+        enddo ! nblocks
 ! ------------------------------------------------------------------------------
 
          ! read more realistic data from a file
