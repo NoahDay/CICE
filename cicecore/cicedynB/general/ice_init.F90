@@ -476,7 +476,7 @@
       restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
-      tr_fsd       = .true. ! floe size distribution ! noah day wim changed from false
+      tr_fsd       = .true. ! floe size distribution ! Noah Day WIM, changed from .false.
       restart_fsd  = .false. ! floe size distribution restart
 
       n_iso = 0
@@ -553,7 +553,6 @@
       endif
       call broadcast_scalar(nml_error, master_task)
       if (nml_error /= 0) then
-        ! noah day wim commenting
          call abort_ice(subname//'ERROR: reading namelist', &
             file=__FILE__, line=__LINE__)
       endif
