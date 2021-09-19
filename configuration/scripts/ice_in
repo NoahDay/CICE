@@ -646,4 +646,6 @@
     f_diam_ww      = 'x'
     f_hice_ww      = 'x'
     f_peak_period  = 'x'
+    f_mean_wave_dir = 'x'
+    f_wave_spectrum = 'x'
 /
