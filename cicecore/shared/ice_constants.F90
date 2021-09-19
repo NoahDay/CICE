@@ -125,6 +125,12 @@
         kg_to_g       = 1000._dbl_kind  ,&! kilograms to grams
         mps_to_cmpdy  = 8.64e6_dbl_kind   ! m per s to cm per day
 
+! Noah Day WIM --------------------------------------------------
+        integer (int_kind), parameter, public :: &
+         wavemask			= 50
+        real (kind=dbl_kind), parameter, public :: &
+         max_floediam     = 300.0_dbl_kind
+!---------------------------------------------------------------------------
 !=======================================================================
 
       contains
