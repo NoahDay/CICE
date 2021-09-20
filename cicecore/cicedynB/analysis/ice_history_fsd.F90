@@ -393,9 +393,9 @@
 ! ------------------------------------------------------------------------------
 
 ! Noah Day WIM -----------------------------------------------------------------
-      if (f_wave_spectrum(1:1)/= 'x') &
-         call accum_hist_field(n_wave_spectrum,   iblk, &
-                               wave_spectrum(:,:,:,iblk), a2D)
+    !  if (f_wave_spectrum(1:1)/= 'x') &
+    !     call accum_hist_field(n_wave_spectrum,   iblk, &
+    !                           wave_spectrum(:,:,:,iblk), a2D)
 ! ------------------------------------------------------------------------------
 
 
