@@ -85,6 +85,8 @@
         p666 = c2/c3, &
         p055 = p111*p5, &
         p027 = p055*p5, &
+        eps1  = 1.0e-1_dbl_kind, &
+        eps3  = 1.0e-3_dbl_kind, &
         eps04  = 1.0e-4_dbl_kind, &
         eps13  = 1.0e-13_dbl_kind, &
         eps16  = 1.0e-16_dbl_kind
