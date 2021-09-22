@@ -16,6 +16,9 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
+! Noah Day WIM, adding nfreq for wave spectrum ---------------------------------
+      use ice_domain_size, only: nfreq
+! ------------------------------------------------------------------------------
 
       implicit none
       private
@@ -193,11 +196,6 @@
               "mean wave direction of swell waves",  &
               "from attenuated spectrum in ice", c1, c0,     &
               ns, f_mean_wave_dir)
-      if (f_wave_spectrum(1:1) /= 'x') &
-         call define_hist_field(n_wave_spectrum,"wave_spectrum","1",tstr2D, tcstr, &
-             "energy wave spectrum",  &
-             "per grid cell", c1, c0,     &
-             ns, f_wave_spectrum)
 ! ------------------------------------------------------------------------------
 
 
@@ -279,6 +277,12 @@
             call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
+! Noah Day WIM, ----------------------------------------------------------------
+        if (f_wave_spectrum(1:1) /= 'x') &
+           call define_hist_field(n_wave_spectrum,"wave_spectrum","1",tstr3Df, tcstr, &
+              "Energy wave spectrum",                       &
+              "Avg over freq period", c1, c0, ns, f_wave_spectrum)
+! ------------------------------------------------------------------------------
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
 
@@ -392,11 +396,6 @@
                                mean_wave_dir(:,:,iblk), a2D)
 ! ------------------------------------------------------------------------------
 
-! Noah Day WIM -----------------------------------------------------------------
-    !  if (f_wave_spectrum(1:1)/= 'x') &
-    !     call accum_hist_field(n_wave_spectrum,   iblk, &
-    !                           wave_spectrum(:,:,:,iblk), a2D)
-! ------------------------------------------------------------------------------
 
 
       if (f_aice_ww(1:1)/= 'x') then
@@ -528,6 +527,13 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
+! Noah Day WIM -----------------------------------------------------------------
+      if (f_wave_spectrum(1:1)/= 'x') &
+      call accum_hist_field(n_wave_spectrum, iblk, nfsd_hist, &
+                             wave_spectrum(:,:,1:nfreq,iblk), a3Df)
+! ------------------------------------------------------------------------------
+
+
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields
