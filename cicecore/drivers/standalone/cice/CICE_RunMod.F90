@@ -51,9 +51,42 @@
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
+! Noah Day WIM, ----------------------------------------------------------------
+      use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
+             ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
+             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt
+!  -----------------------------------------------------------------------------
       logical (kind=log_kind) :: &
           tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
       character(len=*), parameter :: subname = '(CICE_Run)'
+
+! Noah Day WIM, run description ------------------------------------------------
+! ------------------------------------------------------------------------------
+
+!--------------------------------------------------------------------
+!  local variables
+!--------------------------------------------------------------------
+
+   integer (kind=int_kind) :: k
+
+   integer                 :: nww3, nmth, N_tm, N_lat, N_lon
+
+   write(nu_diag,*) '---------------------------------'
+   write(nu_diag,*) 'LB: Version 1.5 03.04.17'
+   write(nu_diag,*) '    Alberto taking over'
+   write(nu_diag,*) '---------------------------------'
+   if (do_coupled.eq.0) then
+   write(nu_diag,*) '    Uncoupled wave attn/ice break'
+   write(nu_diag,*) '    ATTEN_METH=', ATTEN_METH
+   else
+   write(nu_diag,*) '    Coupled wave attn/ice break'
+   write(nu_diag,*) '    ATTEN_METH, ATTEN_MODEL=', ATTEN_METH, ATTEN_MODEL
+   endif
+   write(nu_diag,*) '    attn_fac=', attn_fac
+   write(nu_diag,*) '---------------------------------'
+
+! ------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------
 
    !--------------------------------------------------------------------
    !  initialize error code and step timer
@@ -77,7 +110,50 @@
    ! timestep loop
    !--------------------------------------------------------------------
 
+! Noah Day WIM, ----------------------------------------------------------------
+    nmth=1
+    if (WAVE_METH.eq.1) then
+       call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
+       allocate(ww3_swh(N_lon,N_lat))
+       allocate(ww3_fp(N_lon,N_lat))
+       allocate(ww3_dir(N_lon,N_lat))
+    endif
+
+    nww3=1-nww3_dt
+! ------------------------------------------------------------------------------
+
+
       timeLoop: do
+
+! Noah Day WIM, ----------------------------------------------------------------
+        !!!!! LUKE'S WAVE STUFF !!!!!
+
+        nww3=nww3+nww3_dt
+        if (WAVE_METH.eq.1) then
+           print*, 'LB: istep,nww3,N_tm=', istep, nww3, N_tm
+           if (nww3.le.N_tm) then
+               ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
+               ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
+               ww3_dir(:,:) = ww3_dir_full(:,:,nww3)
+           else
+               ww3_swh(:,:) = ww3_swh_full(:,:,N_tm)
+               ww3_fp(:,:)  = ww3_fp_full(:,:,N_tm)
+               ww3_dir(:,:) = ww3_dir_full(:,:,N_tm)
+               deallocate(ww3_swh_full)
+               deallocate(ww3_fp_full)
+               deallocate(ww3_dir_full)
+               deallocate(ww3_lat)
+               deallocate(ww3_lon)
+               deallocate(ww3_tm)
+           endif
+        endif
+        nmth = nmth+1
+        !print*, '    month=', nmth
+        if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
+        nww3=1-nww3_dt
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! ------------------------------------------------------------------------------
+
 #endif
 
          call ice_step
@@ -124,6 +200,18 @@
    !--------------------------------------------------------------------
    ! end of timestep loop
    !--------------------------------------------------------------------
+
+! Noah Day WIM, Deallocate WW3 variables ---------------------------------------
+    if (WAVE_METH.eq.1) then
+      write(nu_diag,*) '   DEALLOCATING WW3 VARIABLES'
+      deallocate(ww3_tm)
+      deallocate(ww3_lon)
+      deallocate(ww3_lat)
+      deallocate(ww3_swh)
+      write(nu_diag,*) '   DEALLOCATED'
+    endif
+! ------------------------------------------------------------------------------
+
 
       call ice_timer_stop(timer_step)   ! end timestepping loop timer
 
