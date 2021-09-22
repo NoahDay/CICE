@@ -535,7 +535,7 @@
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_calendar, only: yday, istep ! Noah Day WIM, Adding istep.
+      use ice_calendar, only: yday, istep, istep0, istep1, idate, idate0, timesecs, sec_init ! Noah Day WIM, Adding istep, idate, idate0.
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd, nfreq
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
@@ -624,6 +624,8 @@
        ! LB: added 20.05.15 for WW3 data integration
        integer, dimension(1)                 :: dumlatloc
        real (kind=dbl_kind)   			    :: mn_lat
+
+       integer (kind=int_kind)      ::  floe_count ! whether we have memory or not (0=none, 1=yes)
 
        !real (kind=dbl_kind) :: &
           !uvel_center, &     ! cell-centered velocity, x component (m/s)
@@ -728,12 +730,13 @@
        !call init_wave_spec_usr(wavemask_dyn)
 
        !if (1.eq.0) then ! reinitialise floe diameters (no memory)
+       if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
         write(nu_diag,*) '                -> Reinitialising floe sizes'
         call init_floe_0
-       !else             ! initialise ifd using ifloe tracer values
-        !write(nu_diag,*) '                -> Remembering floe sizes'
+       else             ! initialise ifd using ifloe tracer values
+        write(nu_diag,*) '                -> Remembering floe sizes'
         ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
-       !endif
+      endif ! date
 
        ! overall volume & overall concentration (wrt thickness categories)
        do j = 1, ny_block
@@ -760,7 +763,7 @@
        do i = 1, nx_block
         swh(i,j,iblk)  = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))+c3
         ! INITIALISING WAVES AT 3m
-        ! THIS COULD BE A GOOD SPOT FOR READING IN DATA but check what Luke did
+
         ppd(i,j,iblk)   = c5*SQRT(swh(i,j,iblk))
        enddo
       enddo
@@ -777,7 +780,22 @@
                               ov_conc, ov_vol, & ! afice, vfice
                               wavemask_dyn)      ! dum_wavemask
 
-  endif          ! ENDIF c300
+    else !!! Wave-ice interaction code OFF
+
+       write(nu_diag,*) '----------------------------------------------------'
+       write(nu_diag,*) '----------------------------------------------------'
+       write(nu_diag,*) '----------------------------------------------------'
+       write(nu_diag,*) 'LB: CICE_RunMod > Control test -> setting floe diameters = ', &
+          max_floediam !c300
+
+        do j = 1, ny_block
+         do i = 1, nx_block
+          ifd(i,j,iblk)    = max_floediam !c300
+          !trcrn(i,j,nt_ifloe,1,iblk)  = c300
+         enddo
+        enddo
+
+      endif          ! ENDIF c300
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!        END WAVE-ICE CODE       !!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
