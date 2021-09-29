@@ -47,6 +47,7 @@
         c4   = 4.0_dbl_kind, &
         c5   = 5.0_dbl_kind, &
         c6   = 6.0_dbl_kind, &
+        c7   = 7.0_dbl_kind, &
         c8   = 8.0_dbl_kind, &
         c9   = 9.0_dbl_kind, &
         c10  = 10.0_dbl_kind, &

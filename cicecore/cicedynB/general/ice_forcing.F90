@@ -33,7 +33,7 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound, timer_forcing
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
-      use ice_constants, only: c0, c1, c2, c3, c4, c5, c8, c10, c12, c15, c20, &
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c12, c15, c20, &
                                c180, c360, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p2, p25, p5, p6
       use ice_constants, only: cm_to_m
@@ -50,7 +50,9 @@
                 get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
-                read_data_nc_point, interp_coeff
+                read_data_nc_point, interp_coeff, init_wave_spec, &
+                init_wave_spec_usr, init_wave_spec_init, check
+                ! Noah Day WIM, adding init_wave_spec, init_wave_spec_usr, init_wave_spec_init, check
 
       integer (kind=int_kind), public :: &
          ycycle          , & ! number of years in forcing cycle, set by namelist
@@ -5329,9 +5331,9 @@
 
       subroutine get_wave_spec
 
-      use ice_read_write, only: ice_read_nc_xyf
+      use ice_read_write! noah day wim, only: ice_read_nc_xyf
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
-                                   dwavefreq, wavefreq
+                                   dwavefreq, wavefreq, sig_ht ! Noah Day WIM
       use ice_constants, only: c0, p5
       use ice_domain_size, only: nfreq
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
@@ -5339,6 +5341,9 @@
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block
+      use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
+             ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
+             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt
 ! ------------------------------------------------------------------------------
       ! local variables
       integer (kind=int_kind) :: &
@@ -5380,13 +5385,15 @@ integer (kind=int_kind) :: &
                                 wave_spectrum_profile, &
                                 wavefreq, dwavefreq)
 ! Noah Day debug 004 -----------------------------------------------------------
-        do iblk = 1, nblocks
-           do j = 1, ny_block
-             do i = 1, nx_block
-               wave_spectrum(i,j,:,iblk) = wave_spectrum_profile
-             enddo
-           enddo
-        enddo ! nblocks
+    !    do iblk = 1, nblocks
+    !       do j = 1, ny_block
+    !         do i = 1, nx_block
+    !           wave_spectrum(i,j,:,iblk) = wave_spectrum_profile
+    !         enddo
+    !       enddo
+    !    enddo ! nblocks
+    sst_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file) ! not just sst
+    write (nu_diag,*) 'Wave forcing data file : ', sst_file
 ! ------------------------------------------------------------------------------
 
          ! read more realistic data from a file
@@ -5396,9 +5403,9 @@ integer (kind=int_kind) :: &
                   file=__FILE__, line=__LINE__)
             else
 #ifdef USE_NETCDF
-               call ice_open_nc(wave_spec_file,fid)
+               call ice_open_nc(sst_file,fid)!(wave_spec_file,fid)
                call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), debug_forcing, &
-                                     field_loc_center, field_type_scalar)
+                                   field_loc_center, field_type_scalar)
                call ice_close_nc(fid)
 #else
                write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
@@ -5410,12 +5417,415 @@ integer (kind=int_kind) :: &
          endif
       endif
 
+      ! Noah Day WIM, read in WW3 data -----------------------------------------
+
+!sst_file = trim(waveicedatadir)//'/'//trim(fname_ww3)
+
+!write (nu_diag,*) 'Hs forcing data file : ', sst_file
+!#ifdef USE_NETCDF
+!      call ice_open_nc(sst_file,fid)
+!      call ice_read_nc_xyf (fid, 1, 'hs', sig_ht(:,:,:), debug_forcing, &
+!                          field_loc_center, field_type_scalar)
+!      write (nu_diag,*) 'Significant wave height is : ', sig_ht(1,28,1)
+!      call ice_close_nc(fid)
+!#else
+!      write (nu_diag,*) "Hs file not available, requires cpp USE_NETCDF"
+!      write (nu_diag,*) "Hs file not available, using default profile"
+!      call abort_ice (subname//'ERROR: fname_ww3 '//trim(fname_ww3), &
+!         file=__FILE__, line=__LINE__)
+!#endif
+
       call ice_timer_stop(timer_fsd)
 
       end subroutine get_wave_spec
 
 !=======================================================================
+! Noah Day WIM =======================================================================
+!BOP
+!
+! !ROUTINE: init_wave_spec_init
+!
+! !DESCRIPTION:
+!
+!  Initialize wave spectrum: significant wave height and peak period (call prior to reading restart data)
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine init_wave_spec_init
+!
+! !USES:
+!
+      use ice_domain, only: nblocks
+      use ice_flux, only: swh, ppd, mwd
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+!EOP
+!
+	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
 
-      end module ice_forcing
+	  do lp_b=1,nblocks
+       do lp_i=1,nx_block
+       do lp_j=1,ny_block
+        swh(lp_i,lp_j,lp_b) = c0
+        ppd(lp_i,lp_j,lp_b) = c0
+        mwd(lp_i,lp_j,lp_b) = c0
+       enddo
+       enddo
+      enddo
+
+
+
+      end subroutine init_wave_spec_init
+
+!=======================================================================
+!BOP
+!
+! !ROUTINE: init_wave_spec
+!
+! !DESCRIPTION:
+!
+!  Initialize wave spectrum: significant wave height and peak period (call prior to reading restart data)
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine init_wave_spec(dum_wavemask,dum_swh,dum_fp,dum_mwd,N_lon,iblk)
+!
+! !USES:
+!
+      use ice_flux, only: swh, ppd, mwd
+      use m_prams_waveice, only: pi, ww3_lat, ww3_lon, ww3_dir, cmt
+      use netcdf
+      use ice_grid, only: tlon, tlat
+      use icepack_parameters, only: puny ! Noah Day WIM
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_domain, only: blocks_ice, nblocks ! Noah Day !
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+!EOP
+!
+	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+	  integer (kind=int_kind), intent(in)   		    :: dum_wavemask
+	  integer, intent(in)                               :: N_lon !, DUM_METH
+	  real(kind=dbl_kind), dimension(N_lon), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+	  integer, dimension(1)                 :: dumlonloc !, dumlatloc
+!	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+	  integer                               :: ind_lon,ind_lon_ww3
+
+    integer (kind=int_kind), intent(in) :: &
+       iblk    ! block index
+
+    ! local variables
+
+    integer (kind=int_kind) :: &
+       ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+       i, j, len               ! horizontal indices
+
+
+     type (block) :: &
+        this_block         ! block information for current block
+
+	  do lp_b=1,nblocks
+    !lp_b = iblk
+       do lp_i=1,nx_block
+       do lp_j=1,ny_block
+        swh(lp_i,lp_j,lp_b) = c0
+        ppd(lp_i,lp_j,lp_b) = c0
+        mwd(lp_i,lp_j,lp_b) = c0
+       enddo
+       enddo
+      enddo
+
+      !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+	  ind_lon = floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360))
+    !ind_lon_ww3 =minloc(abs(ww3_lon)) ! radians to degrees for mean lat
+     !ind_lon = floor(mod(c180*TLON(dum_wavemask,1,1)/pi,c360))
+     !ind_lon = c0
+
+! NOAH DAY START
+
+this_block = get_block(blocks_ice(iblk),iblk)
+ilo = this_block%ilo
+ihi = this_block%ihi
+jlo = this_block%jlo
+jhi = this_block%jhi
+
+
+       !do lp_b=1,nblocks
+
+len = size(dum_swh)
+if (cmt.ne.0) then
+write(nu_diag,*) ' <---------------  block info: -------------------->'
+write(nu_diag,*) ' nblocks: ', nblocks
+write(nu_diag,*) ' ind_lon: ', ind_lon
+write(nu_diag,*) ' nx_block: ', nx_block
+write(nu_diag,*) ' dum_swh: ', dum_swh
+write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
+write(nu_diag,*) ' N_lon: ', N_lon
+write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+write(nu_diag,*) '<-------------------------------------------------->'
+end if
+ind_lon = 36 ! 36th element is 359.93750000000000
+
+len = 1
+!do lp=1,nx_block
+!  if (lp+ind_lon.lt.nx_block+1) then
+!    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+!       swh(lp,dum_wavemask,iblk) = dum_swh(lp+ind_lon)
+!       ppd(lp,dum_wavemask,iblk) = c1/dum_fp(lp+ind_lon)
+!       mwd(lp,dum_wavemask,iblk) = pi*dum_mwd(lp+ind_lon)/c180
+!    endif
+!  else
+!    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+!       swh(lp,dum_wavemask,iblk) = dum_swh(lp+ind_lon)
+!       ppd(lp,dum_wavemask,iblk) = c1/dum_fp(lp+ind_lon)
+!       mwd(lp,dum_wavemask,iblk) = pi*dum_mwd(lp+ind_lon)/c180
+!    endif
+!  endif
+!end do
+i = 1
+do lp=1,N_lon
+    if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
+      !if (dum_swh(i-ind_lon).gt.puny) then!.and.dum_fp(lp-ind_lon).gt.puny) then
+         swh(i,dum_wavemask,len) = dum_swh(lp+ind_lon-N_lon)
+         ppd(i,dum_wavemask,len) = c1/dum_fp(lp+ind_lon-N_lon)
+         mwd(i,dum_wavemask,len) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
+         !write(nu_diag,*) ' SWH lp-ind_lon: ', swh(lp,dum_wavemask,len)
+      !endif
+  else
+    !if (dum_swh(i+ind_lon).gt.puny) then !.and.dum_fp(lp+ind_lon).gt.puny) then
+       swh(i,dum_wavemask,len) = dum_swh(lp+ind_lon)
+       ppd(i,dum_wavemask,len) = c1/dum_fp(lp+ind_lon)
+       mwd(i,dum_wavemask,len) = pi*dum_mwd(lp+ind_lon)/c180
+    !endif
+  end if ! lp+ind_lon
+  i = i + 1 ! tick up until i = ihi
+  if (mod(lp,ihi-1).eq.0) then
+    len = len+1
+    i = 2
+  end if
+end do
+
+! GHOST CELLS
+! at element 1
+do i=1,nblocks
+  swh(1,dum_wavemask,i) = swh(2,dum_wavemask,i)
+  ppd(1,dum_wavemask,i) = ppd(2,dum_wavemask,i)
+  mwd(1,dum_wavemask,i) = mwd(2,dum_wavemask,i)
+end do
+! at end
+do i=1,nblocks
+  swh(ihi,dum_wavemask,i) = swh(ihi-1,dum_wavemask,i)
+  ppd(ihi,dum_wavemask,i) = ppd(ihi-1,dum_wavemask,i)
+  mwd(ihi,dum_wavemask,i) = mwd(ihi-1,dum_wavemask,i)
+end do
+
+!if (iblk.lt.12) then
+!do lp_b=1,nblocks
+
+!do lp=1,nx_block!-ind_lon ! loop from 1 to dum_wavemask position
+!  if (dum_swh(lp+90).gt.puny.and.dum_fp(lp).gt.puny) then
+!    swh(lp,40,lp_b) = c1
+
+          !write(nu_diag,*) 'SWH in initialisation:', dum_swh(lp+ind_lon)
+          !write(nu_diag,*) 'puny is: ', puny
+	 !if (dum_swh(lp).gt.puny.and.dum_fp(lp).gt.puny) then
+   !if (lp_b.eq.1) swh(:,dum_wavemask,lp_b) = c1
+   !if (lp_b.eq.2) swh(nx_block+1-lp,dum_wavemask,lp_b) = c2
+   !if (lp_b.eq.3) swh(nx_block+1-lp,dum_wavemask,lp_b) = c3
+   !if (lp_b.eq.4) swh(nx_block+1-lp,dum_wavemask,lp_b) = c4
+   !if (lp_b.eq.5) swh(nx_block+1-lp,dum_wavemask,lp_b) = c5
+   !if (lp_b.eq.6) swh(nx_block+1-lp,dum_wavemask,lp_b) = c6
+   !if (lp_b.eq.7) swh(nx_block+1-lp,dum_wavemask,lp_b) = c7
+   !if (lp_b.eq.8) swh(nx_block+1-lp,dum_wavemask,lp_b) = c8
+   !if (lp_b.eq.9) swh(nx_block+1-lp,dum_wavemask,lp_b) = c9
+   !if (lp_b.eq.10) then
+  !   swh(nx_block+1-lp,dum_wavemask,lp_b) = c10
+   !else
+  !   swh(lp,dum_wavemask,lp_b) = c1
+  ! endif
+
+
+  	  !swh(nx_block+1-lp,dum_wavemask,lp_b) = !dum_swh(lp)!+ind_lon)
+!		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp+ind_lon)
+!write(nu_diag,*) ' swh :', dum_swh(lp), dum_swh(lp+ind_lon)
+
+
+		  !if (dum_mwd(lp+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp+ind_lon)/c180
+     	  !endif
+		! else
+		 ! swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		  !mwd(lp,dum_wavemask,lp_b) = c0
+!	end if ! lp gt
+!end do
+!end do
+!end if ! iblk
+
+
+      !  enddo ! end lp=1,360-ind_lon ! above the wave mask
+    !    do lp=363-ind_lon,nx_block
+		! if (dum_swh(lp-360+ind_lon).gt.puny.and.dum_fp(lp-360+ind_lon).gt.puny) then
+		 ! swh(lp,dum_wavemask,lp_b) = c1!dum_swh(lp-360+ind_lon)
+		 ! ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp-360+ind_lon)
+		  !if (dum_mwd(lp-360+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+     	!   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp-360+ind_lon)/c180
+     	  !endif
+		! else
+		 ! swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		 ! mwd(lp,dum_wavemask,lp_b) = c0
+		 !endif
+    !    enddo ! end lp=361-ind_lon,nx_block
+  !     enddo ! end lp_b=1,nblocks
+
+  ! NOAH DAY END
+
+
+!WIM START
+     !write(nu_diag,*) ' ind_lon     : ', floor(mod(c180*TLON(dum_wavemask,1,1)/pi,c360)) + 90
+     !write(nu_diag,*) ' ind_lon     : ', floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360)) + 90
+
+! do lp_b=1,nblocks
+!  do lp=1,360-ind_lon
+          !write(nu_diag,*) 'SWH in initialisation:', dum_swh(lp+ind_lon)
+          !write(nu_diag,*) 'puny is: ', puny
+!		 if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+!  		  swh(lp,dum_wavemask,lp_b) = dum_swh(lp+ind_lon)
+!  		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp+ind_lon)
+!write(nu_diag,*) ' swh :', dum_swh(lp), dum_swh(lp+ind_lon)
+
+
+		  !if (dum_mwd(lp+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp+ind_lon)/c180
+     	  !endif
+		 !else
+  		  !swh(lp,dum_wavemask,lp_b) = c0
+  		  !ppd(lp,dum_wavemask,lp_b) = c0
+  		  !mwd(lp,dum_wavemask,lp_b) = c0
+!		 endif
+!        enddo ! end lp=1,360-ind_lon
+!        do lp=363-ind_lon,nx_block
+!		 if (dum_swh(lp-360+ind_lon).gt.puny.and.dum_fp(lp-360+ind_lon).gt.puny) then
+!		  swh(lp,dum_wavemask,lp_b) = dum_swh(lp-360+ind_lon)
+!		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp-360+ind_lon)
+		  !if (dum_mwd(lp-360+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp-360+ind_lon)/c180
+     	  !endif
+		 !else
+		  !swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		  !mwd(lp,dum_wavemask,lp_b) = c0
+!		 endif
+!        enddo ! end lp=361-ind_lon,nx_block
+!       enddo ! end lp_b=1,nblocks
+! WIM END
+!len = 1
+!do lp_b=1,nblocks
+
+!end do
+
+      end subroutine init_wave_spec
+
+!=======================================================================
+!BOP
+!
+! !ROUTINE: init_wave_spec_usr
+!
+! !DESCRIPTION:
+!
+!  Initialize wave spectrum: significant wave height and peak period (call prior to reading restart data)
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine init_wave_spec_usr(dum_wavemask)
+!
+! !USES:
+!
+      use ice_domain, only: nblocks
+      use ice_flux, only: swh, ppd, mwd
+      use m_prams_waveice, only: pi
+      use ice_grid, only: tlon, tlat
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+!EOP
+!
+	  integer (kind=int_kind)    		    			:: lp, lp_b,lp_i,lp_j
+	  integer (kind=int_kind), intent(in)   		    :: dum_wavemask
+
+	  do lp_b=1,nblocks
+       do lp_i=1,nx_block
+       do lp_j=1,ny_block
+        swh(lp_i,lp_j,lp_b) = c0
+        ppd(lp_i,lp_j,lp_b) = c0
+        mwd(lp_i,lp_j,lp_b) = c0
+       enddo
+       enddo
+      enddo
+
+       do lp_b=1,nblocks
+        do lp=1,nx_block
+         swh(lp,dum_wavemask,lp_b) = c3 ! 0.28_dbl_kind !
+         ppd(lp,dum_wavemask,lp_b) = c10
+         mwd(lp,dum_wavemask,lp_b) = 7d0*pi/6d0
+        enddo
+       enddo
+
+      end subroutine init_wave_spec_usr
+
+!=======================================================================
+!BOP
+!
+! !ROUTINE: check
+!
+! !DESCRIPTION:
+!
+!  For WW3 netcdf data
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine check(status)
+      use netcdf
+      integer, intent ( in) :: status
+       if(status /= nf90_noerr) then
+        write(nu_diag,*) trim(nf90_strerror(status))
+       stop "Stopped"
+      end if
+     end subroutine check
+
+! Noah Day WIM ^=======================================================================
+
+end module ice_forcing
 
 !=======================================================================

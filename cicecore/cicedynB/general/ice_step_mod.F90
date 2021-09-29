@@ -536,7 +536,7 @@
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: yday, istep, istep0, istep1, idate, idate0, timesecs, sec_init ! Noah Day WIM, Adding istep, idate, idate0.
-      use ice_domain, only: blocks_ice
+      use ice_domain, only: blocks_ice, nblocks ! Noah Day adding nblocks
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd, nfreq
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
@@ -561,6 +561,10 @@
       use m_waveice, only: sub_Uncoupled
       use icepack_tracers, only: nt_fsd
       use ice_constants, only: max_floediam, wavemask
+      use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
+             ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
+             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt
+      use ice_forcing, only: init_wave_spec,init_wave_spec_usr
 ! ------------------------------------------------------------------------------
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -660,7 +664,14 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-
+if (cmt.ne.0) then
+write(nu_diag,*) ' ---- > Calculating for block: ', iblk
+write(nu_diag,*) ' ilo is: ', ilo
+write(nu_diag,*) ' ihi is: ', ihi
+write(nu_diag,*) ' jlo is: ', jlo
+write(nu_diag,*) ' jhi is: ', jhi
+write(nu_diag,*) ' ----------------------------------------> '
+end if
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 ! TURNING ON WAVES IN ICE MODULE
@@ -678,6 +689,7 @@
       enddo
       enddo
 
+if (cmt.ne.0)  write(nu_diag,*) ' aice dimensions: ', SHAPE(aice)
 
       do n = 1, ncat
       do j = 1, ny_block
@@ -697,7 +709,7 @@
        wavemask_dyn = 0
        do jj = jlo, jhi
         do ii = ilo, ihi
-         if (aice(ii,jj,iblk) .gt. puny) then
+         if (aice(ii,jj,iblk).gt.puny) then
           icells = icells + 1
           indxi(icells) = ii
           indxj(icells) = jj
@@ -707,8 +719,16 @@
          endif
        enddo               ! ii
      enddo                ! jj
-
-
+if (cmt.ne.0) then
+write(nu_diag,*) 'indxi: ', ii
+write(nu_diag,*) ' indxj: ', jj
+write(nu_diag,*) 'wave mask is: ', wavemask_dyn
+end if !cmt
+if (iblk.eq.9) wavemask_dyn = 42
+if (iblk.eq.10) wavemask_dyn = 42
+     !wavemask_dyn = -66
+  !if (wavemask_dyn.eq.0) wavemask_dyn = 49 ! sometimes wavemask is being set to 0
+!wavemask_dyn = 50
   if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON
 
     if (cmt.ne.0) then
@@ -717,24 +737,57 @@
         write(nu_diag,*) '----------------------------------------------------'
         write(nu_diag,*) 'LB: CICE_RunMod -> Running wave-ice interaction code:', &
          ' istep=', istep !, 'dt=', dt
-
-         mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
-         write(nu_diag,*) 'TLAT=', c180*mn_lat/pi
      endif ! cmt
 
-       do i=1,nx_block
-         mwd(i,wavemask_dyn,iblk) = pi ! directly southward
-       enddo
-       !endif	! IF OVERWRITE_DIRS
+     mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
+     write(nu_diag,*) ' mean latitude: ', mn_lat, mn_lat*c180/pi
 
-       !call init_wave_spec_usr(wavemask_dyn)
+     if (WAVE_METH.eq.1) then
+
+              !dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=1)
+
+       ! Finding the lateral degree where to propagate from
+              dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
+              !dumlatloc =25
+              write(nu_diag,*)'     dumlatloc: ', dumlatloc
+               !write(nu_diag,*) ' ww3_lat is : ', ww3_lat
+                !write(nu_diag,*) ' ww3_swh ', ww3_swh(:,dumlatloc(1))
+                !write(nu_diag,*) ' ww3_swh ', ww3_swh(dumlatloc(1),:)
+              ! Noah Day WIM, changed from dim = 1, as dim is [1,300]
+              !call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
+             	!ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon))
+
+              call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
+             	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
+
+
+!write(nu_diag,*) '          -> Calling init_wave_spec', ww3_swh(:,dumlatloc(1))
+!write(nu_diag,*) '          -> Calling init_wave_spec', ww3_swh(dumlatloc(1),:)
+
+!write(nu_diag,*)'     ww3_lat: ', SHAPE(ww3_lat(:,:))
+!write(nu_diag,*)'     ww3_fp: ', SHAPE(ww3_fp(:,:))
+!write(nu_diag,*)'     ww3_dir: ', SHAPE(ww3_dir(:,:))
+!write(nu_diag,*)'     dumlatloc: ', dumlatloc!SHAPE(abs(ww3_lat-c180*mn_lat/pi)), minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2)
+!write(nu_diag,*) ' ww3_lat: ', ww3_lat
+          if (OVERWRITE_DIRS.eq.1) then
+           !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
+           do i=1,nx_block
+             mwd(i,wavemask_dyn,iblk) = pi
+           enddo
+          endif	! IF OVERWRITE_DIRS
+        !print*, 'passed overwriting directions: mwd(1,wavemask_dyn,iblk)=', mwd(1,wavemask_dyn,iblk)
+       else
+        call init_wave_spec_usr(wavemask_dyn)
+write(nu_diag,*) '         -> Calling init_wave_spec_usr'
+       endif
 
        !if (1.eq.0) then ! reinitialise floe diameters (no memory)
-       if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
-        write(nu_diag,*) '                -> Reinitialising floe sizes'
+       !if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
+       if (istep.eq.0) then
+        if (cmt.ne.0) write(nu_diag,*) '                -> Reinitialising floe sizes'
         call init_floe_0
        else             ! initialise ifd using ifloe tracer values
-        write(nu_diag,*) '                -> Remembering floe sizes'
+        if (cmt.ne.0) write(nu_diag,*) '                -> Remembering floe sizes'
         ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
       endif ! date
 
@@ -757,18 +810,20 @@
         enddo
       enddo
 
+!write(nu_diag,*)' significant wave height after propagation:', swh(:,:,iblk)
       !---------------------------------------------------------------------------
       ! Noah Day WIM, Initialising the significant wave height and peak period.
-      do j = 1, ny_block
-       do i = 1, nx_block
-        swh(i,j,iblk)  = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))+c3
+      !do j = 1, ny_block
+       !do i = 1, nx_block
+        !swh(i,j,iblk)  = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))!+c3
         ! INITIALISING WAVES AT 3m
 
-        ppd(i,j,iblk)   = c5*SQRT(swh(i,j,iblk))
-       enddo
-      enddo
+        !ppd(i,j,iblk)   = c5*SQRT(swh(i,j,iblk))
+       !enddo
+      !enddo
       !---------------------------------------------------------------------------
-
+      !write(nu_diag,*) 'LB: CICE_RunMod > Control test -> the sig wave height is ', &
+      !   maxval(swh(:,:,iblk),1)
       call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
                               dt,              & ! dt
                               tmask(:,:,iblk), & ! tmask
@@ -779,6 +834,7 @@
                               ifd(:,:,iblk),   & ! ifloe
                               ov_conc, ov_vol, & ! afice, vfice
                               wavemask_dyn)      ! dum_wavemask
+    write(nu_diag,*)'     swh: ', SHAPE(swh(:,:,iblk))
 
     else !!! Wave-ice interaction code OFF
 
@@ -838,7 +894,7 @@
      mean_wave_dir(i,j,iblk) = mwd(i,j,iblk)
    enddo
   enddo
-
+!write(nu_diag,*)'Made it to link back', wave_sig_ht(30,45,1)
   !-------------------------------------------------------------------------------
   ! TURNING OFF WAVES IN ICE MODULE
   endif ! WIM
