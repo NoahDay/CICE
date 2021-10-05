@@ -5520,9 +5520,9 @@ integer (kind=int_kind) :: &
 	  integer, intent(in)                               :: N_lon !, DUM_METH
 	  real(kind=dbl_kind), dimension(N_lon), intent(in) :: dum_swh, dum_fp, dum_mwd
 
-	  integer, dimension(1)                 :: dumlonloc !, dumlatloc
+	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3 !, dumlatloc
 !	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
-	  integer                               :: ind_lon,ind_lon_ww3
+	  integer                               :: ind_lon
 
     integer (kind=int_kind), intent(in) :: &
        iblk    ! block index
@@ -5538,7 +5538,6 @@ integer (kind=int_kind) :: &
         this_block         ! block information for current block
 
 	  do lp_b=1,nblocks
-    !lp_b = iblk
        do lp_i=1,nx_block
        do lp_j=1,ny_block
         swh(lp_i,lp_j,lp_b) = c0
@@ -5549,12 +5548,23 @@ integer (kind=int_kind) :: &
       enddo
 
       !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
-	  ind_lon = floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360))
-    !ind_lon_ww3 =minloc(abs(ww3_lon)) ! radians to degrees for mean lat
-     !ind_lon = floor(mod(c180*TLON(dum_wavemask,1,1)/pi,c360))
-     !ind_lon = c0
+!	  ind_lon = floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360))
+
+    ! Find the location at which the the ww3 grid is = 0.
+!write(nu_diag,*) ' ww3_lon', SHAPE(TRANSPOSE(ww3_lon))
+!write(nu_diag,*) ' ww3_lon', SIZE(ww3_lon)
+!write(nu_diag,*) ' abs(ww3_lon)', SIZE(abs(ww3_lon))
+!  ind_lon_ww3 =minval(ww3_lon, mask=ww3_lon.gt.0)
+!  write(nu_diag,*) ' ind_lon_ww3', ind_lon_ww3
+!  ind_lon_ww3 =minval(abs(ww3_lon))
+!  write(nu_diag,*) ' ind_lon_ww3', ind_lon_ww3
+!  write(nu_diag,*) 'minloc(abs(ww3_lon-c0),dim=2)', minloc(abs(ww3_lon-c0),dim=2)
+!  write(nu_diag,*) 'minloc(abs(ww3_lon-c0),dim=1)', minloc(abs(ww3_lon-c0),dim=1)
+
 
 ! NOAH DAY START
+ind_lon_ww3 = minloc(abs(ww3_lon-c0),dim=1) ! find the difference in grids
+! CICE starts at lon = 0, ww3 does not.
 
 this_block = get_block(blocks_ice(iblk),iblk)
 ilo = this_block%ilo
@@ -5567,69 +5577,55 @@ jhi = this_block%jhi
 
 len = size(dum_swh)
 if (cmt.ne.0) then
-write(nu_diag,*) ' <---------------  block info: -------------------->'
-write(nu_diag,*) ' nblocks: ', nblocks
-write(nu_diag,*) ' ind_lon: ', ind_lon
-write(nu_diag,*) ' nx_block: ', nx_block
-write(nu_diag,*) ' dum_swh: ', dum_swh
-write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
-write(nu_diag,*) ' N_lon: ', N_lon
-write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
-write(nu_diag,*) '<-------------------------------------------------->'
+  write(nu_diag,*) ' <---------------  block info: -------------------->'
+  write(nu_diag,*) ' nblocks: ', nblocks
+  write(nu_diag,*) ' ind_lon: ', ind_lon
+  write(nu_diag,*) ' nx_block: ', nx_block
+  write(nu_diag,*) ' dum_swh: ', dum_swh
+  write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
+  write(nu_diag,*) ' N_lon: ', N_lon
+  write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+  write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+  write(nu_diag,*) '<-------------------------------------------------->'
 end if
-ind_lon = 36 ! 36th element is 359.93750000000000
+ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
 
-len = 1
-!do lp=1,nx_block
-!  if (lp+ind_lon.lt.nx_block+1) then
-!    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
-!       swh(lp,dum_wavemask,iblk) = dum_swh(lp+ind_lon)
-!       ppd(lp,dum_wavemask,iblk) = c1/dum_fp(lp+ind_lon)
-!       mwd(lp,dum_wavemask,iblk) = pi*dum_mwd(lp+ind_lon)/c180
-!    endif
-!  else
-!    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
-!       swh(lp,dum_wavemask,iblk) = dum_swh(lp+ind_lon)
-!       ppd(lp,dum_wavemask,iblk) = c1/dum_fp(lp+ind_lon)
-!       mwd(lp,dum_wavemask,iblk) = pi*dum_mwd(lp+ind_lon)/c180
-!    endif
-!  endif
-!end do
-i = 1
+i = 1 ! index for nx_block
+j = 1 ! block index
+
 do lp=1,N_lon
     if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
-      !if (dum_swh(i-ind_lon).gt.puny) then!.and.dum_fp(lp-ind_lon).gt.puny) then
-         swh(i,dum_wavemask,len) = dum_swh(lp+ind_lon-N_lon)
-         ppd(i,dum_wavemask,len) = c1/dum_fp(lp+ind_lon-N_lon)
-         mwd(i,dum_wavemask,len) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
-         !write(nu_diag,*) ' SWH lp-ind_lon: ', swh(lp,dum_wavemask,len)
-      !endif
-  else
-    !if (dum_swh(i+ind_lon).gt.puny) then !.and.dum_fp(lp+ind_lon).gt.puny) then
-       swh(i,dum_wavemask,len) = dum_swh(lp+ind_lon)
-       ppd(i,dum_wavemask,len) = c1/dum_fp(lp+ind_lon)
-       mwd(i,dum_wavemask,len) = pi*dum_mwd(lp+ind_lon)/c180
-    !endif
+      if (dum_swh(lp+ind_lon-N_lon).gt.puny.and.dum_fp(lp+ind_lon-N_lon).gt.puny) then
+         swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon-N_lon)
+         ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon-N_lon)
+         mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
+      endif
+  else ! feed the horizontally translated data into CICE
+    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+       swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon)
+       ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon)
+       mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon)/c180
+    endif
   end if ! lp+ind_lon
   i = i + 1 ! tick up until i = ihi
   if (mod(lp,ihi-1).eq.0) then
-    len = len+1
-    i = 2
+    i = 2 ! reset nx_block index, 1 is a ghost cell
+    j = j + 1 ! set for the next block
   end if
 end do
 
 ! GHOST CELLS
-! at element 1
+! Replicate the value for ilo into the ghost cells
 do i=1,nblocks
-  swh(1,dum_wavemask,i) = swh(2,dum_wavemask,i)
-  ppd(1,dum_wavemask,i) = ppd(2,dum_wavemask,i)
-  mwd(1,dum_wavemask,i) = mwd(2,dum_wavemask,i)
+  swh(1,dum_wavemask,i) = swh(ilo,dum_wavemask,i)
+  ppd(1,dum_wavemask,i) = ppd(ilo,dum_wavemask,i)
+  mwd(1,dum_wavemask,i) = mwd(ilo,dum_wavemask,i)
 end do
 ! at end
 do i=1,nblocks
-  swh(ihi,dum_wavemask,i) = swh(ihi-1,dum_wavemask,i)
-  ppd(ihi,dum_wavemask,i) = ppd(ihi-1,dum_wavemask,i)
-  mwd(ihi,dum_wavemask,i) = mwd(ihi-1,dum_wavemask,i)
+  swh(ihi+1,dum_wavemask,i) = swh(ihi,dum_wavemask,i)
+  ppd(ihi+1,dum_wavemask,i) = ppd(ihi,dum_wavemask,i)
+  mwd(ihi+1,dum_wavemask,i) = mwd(ihi,dum_wavemask,i)
 end do
 
 !if (iblk.lt.12) then
