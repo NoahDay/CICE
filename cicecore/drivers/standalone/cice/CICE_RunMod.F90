@@ -144,7 +144,6 @@
                ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
                ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
                ww3_dir(:,:) = ww3_dir_full(:,:,nww3)
-               write (nu_diag,*) ' Sig wave height after reading in is:', ww3_swh(30,45), SHAPE(ww3_swh)
            else
                ww3_swh(:,:) = ww3_swh_full(:,:,N_tm)
                ww3_fp(:,:)  = ww3_fp_full(:,:,N_tm)
