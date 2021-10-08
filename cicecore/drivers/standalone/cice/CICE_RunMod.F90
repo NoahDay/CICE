@@ -27,7 +27,7 @@
 ! Noah Day WIM, ----------------------------------------------------------------
       use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
              ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
-             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt
+             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt, WIM
       use netcdf
       use ice_constants, only: eps1, eps3
       use ice_fileunits
@@ -120,6 +120,7 @@
    !--------------------------------------------------------------------
 
 ! Noah Day WIM, ----------------------------------------------------------------
+if (WIM.eq.1) then
     nmth=1
     if (WAVE_METH.eq.1) then
        call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
@@ -129,6 +130,7 @@
     endif
 
     nww3=1-nww3_dt
+endif ! WIM
 ! ------------------------------------------------------------------------------
 
 
@@ -136,7 +138,7 @@
 
 ! Noah Day WIM, ----------------------------------------------------------------
         !!!!! LUKE'S WAVE STUFF !!!!!
-
+if (WIM.eq.1) then
         nww3=nww3+nww3_dt
         if (WAVE_METH.eq.1) then
            write(nu_diag,*) 'LB: istep,nww3,N_tm=', istep, nww3, N_tm
@@ -161,6 +163,7 @@
         !print*, '    month=', nmth
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
         nww3=1-nww3_dt
+endif ! WIM
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ------------------------------------------------------------------------------
 
@@ -212,14 +215,16 @@
    !--------------------------------------------------------------------
 
 ! Noah Day WIM, Deallocate WW3 variables ---------------------------------------
-    !if (WAVE_METH.eq.1) then
+if (WIM.eq.1) then
+    if (WAVE_METH.eq.1) then
       write(nu_diag,*) '   DEALLOCATING WW3 VARIABLES'
       deallocate(ww3_tm)
       deallocate(ww3_lon)
       deallocate(ww3_lat)
       deallocate(ww3_swh)
       write(nu_diag,*) '   DEALLOCATED'
-    !endif
+    endif
+  endif ! WIM
 ! ------------------------------------------------------------------------------
 
 
@@ -270,6 +275,7 @@ use ice_forcing, only: check
         integer (kind=int_kind) :: &
            fid              ! file id for netCDF file
 
+if (WIM.eq.1) then
         ww3_file = trim(waveicedatadir)//'/'//trim(fname_ww3)//'.nc'
     if (WAVE_METH.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
@@ -399,7 +405,7 @@ use ice_forcing, only: check
          write(nu_diag,*) '    -> WAVE DATA LOADED, N_tm=',N_tm
          !print*, '    -> WAVE DATA LOADED, N_tm=',N_tm
        endif ! WAVE_METH
-
+endif ! WIM
    end subroutine sub_WW3_dataread
 
 !=======================================================================
