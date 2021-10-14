@@ -5,8 +5,7 @@
 
 <!--- [![codecov](https://codecov.io/gh/apcraig/Test_CICE_Icepack/branch/master/graph/badge.svg)](https://codecov.io/gh/apcraig/Test_CICE_Icepack) --->
 
-## The CICE Consortium sea-ice model
-# README
+## The CICE Consortium sea-ice model with WIM
 
 The Waves-in-Ice Module (WIM) module is a way to propagate waves through the ice pack in CICE6, such that preliminary runs can be completed using CICE's new FSD routine. This module is from the code used in Bennetts et al. (2017) ([https://bitbucket.org/puotila/cicewithwaves/src/master/](https://bitbucket.org/puotila/cicewithwaves/src/master/)), although some modifications have been made to make it compatible with the latest version of CICE. It was decided that CICE's ice breakup routine (Roach et al., 2018; Horvat et al., 2015 check!!) would be used within this model to keep comparisons as simple as possible. 
 
@@ -20,9 +19,7 @@ The code primarily aims to achieve:
 
 Attenuation is computed as per the observation of Meylan et al. (2014) currently, there is the code in place to implement the attenuation model presented in Williams et al. (2013a,2013b), but this has not been tested within CICE6 yet.
 
-# WIM
-
-## Explanation of code
+### Explanation of code
     
     `increment_floe` is the main script in the module, it calls all other files in the `wave_ice_code` and exists within CICE code. This code first initalises: frequency min/max, angular frequencies, frequency, wave direction, initial energy spec, wavelength, wave number, dummy spectral moments, wave spectrum tolerance, spectrum passed through ice-covered ocean, sine mean wave direction for rows, values required for calculations of mean wave direction, WIM termination flags, attenuation parameters, and points in frequency and angular domains.
     
@@ -40,17 +37,17 @@ Attenuation is computed as per the observation of Meylan et al. (2014) currently
  
 For more details see https://noahday.notion.site/README-af9c753fb9ab47f2a0220bda3cfa256d.        
 
-# Dependencies
+## Dependencies
 
 The code is initiated within `ice_step_mod`, in the subroutine `step_therm2` 
 
-## `CICE_RUN`
+### `CICE_RUN`
 
-## `ice_forcing`
+### `ice_forcing`
 
-## `ice_step_mod`
+### `ice_step_mod`
 
-# Reference list:
+## Reference list:
 
 Bennetts, L., O’Farrell, S. and Uotila, P. (2017) ‘Brief communication: impacts of ocean-wave-induced breakup of Antarctic sea ice via thermodynamics in a stand-alone version of the CICE sea-ice model’, The Cryosphere
 
@@ -64,7 +61,7 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
 
 Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone. Part 2: Numerical implementation and sensitivity studies along 1D transects of the ocean surface’, Ocean Modelling, 71, pp. 92–101. doi:10.1016/j.ocemod.2013.05.011.
 
-# ❓FAQ
+## ❓FAQ
 
 - Is this model in 2D?
     
