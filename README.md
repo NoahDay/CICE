@@ -22,7 +22,7 @@ Attenuation is computed as per the observation of Meylan et al. (2014) currently
 
 # WIM
 
-- Explanation of code
+## Explanation of code
     
     `increment_floe` is the main script in the module, it calls all other files in the `wave_ice_code` and exists within CICE code. This code first initalises: frequency min/max, angular frequencies, frequency, wave direction, initial energy spec, wavelength, wave number, dummy spectral moments, wave spectrum tolerance, spectrum passed through ice-covered ocean, sine mean wave direction for rows, values required for calculations of mean wave direction, WIM termination flags, attenuation parameters, and points in frequency and angular domains.
     
@@ -38,7 +38,7 @@ Attenuation is computed as per the observation of Meylan et al. (2014) currently
         3. Calculate wave numbers and wavelengths
             
  
-        
+For more details see https://noahday.notion.site/README-af9c753fb9ab47f2a0220bda3cfa256d.        
 - Summary of `wave_ice_code`
     
     [m_waveice documentation](https://www.notion.so/m_waveice-documentation-0938744c39e9488b9e01d2ac499a44e2)
