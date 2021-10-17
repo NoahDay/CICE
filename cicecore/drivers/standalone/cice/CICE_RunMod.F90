@@ -128,7 +128,8 @@
        allocate(ww3_dir(N_lon,N_lat))
     endif
 
-    nww3=1-nww3_dt
+    !nww3=1-nww3_dt
+
 ! ------------------------------------------------------------------------------
 
 
@@ -156,11 +157,12 @@
                deallocate(ww3_tm)
            endif
         endif
-        nmth = nmth+1
-        !write(nu_diag,*) 'WW3 SWH:', ww3_swh(1,:)
+        !nmth = nmth+1
+        write(nu_diag,*) ' nww3 :', nww3
+        write(nu_diag,*) ' nmth:', nmth
         !print*, '    month=', nmth
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
-        nww3=1-nww3_dt
+        !nww3=1-nww3_dt
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ------------------------------------------------------------------------------
 
@@ -273,67 +275,43 @@ use ice_forcing, only: check
         ww3_file = trim(waveicedatadir)//'/'//trim(fname_ww3)//'.nc'
     if (WAVE_METH.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
-       !print*, '    sub_WW3_dataread WAVE_METH=1', mth
         if (mth.eq.1) then
-      !call  nf90_open(waveicedatadir // fname_ww3 // '.nc', NF90_NOWRITE, ncid)!// '01_full.nc', NF90_NOWRITE, ncid)
-        !call ice_open_nc(ww3_file, ncid)
-        status = nf90_open(ww3_file, NF90_NOWRITE, ncid)
-        if (status /= nf90_noerr) then
-           call abort_ice ('ERROR: Cannot open '//trim(ww3_file) )
-        endif
-        !ncid = 1
-        !call check( nf90_open(ww3_file, NF90_NOWRITE, ncid) )
+        call check( nf90_open(ww3_file, NF90_NOWRITE, ncid) )
         elseif (mth.eq.2) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '02_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '02_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.3) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '03_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '03_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.4) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '04_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '04_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.5) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '05_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '05_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.6) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '06_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '06_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.7) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '07_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '07_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.8) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '08_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '08_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.9) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '09_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '09_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.10) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '10_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '10_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.11) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '11_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '11_full.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.12) then
-         !call check( nf90_open(waveicedatadir // fname_ww3 // '12_full.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(waveicedatadir // fname_ww3 // '12_full.nc', NF90_NOWRITE, ncid) )
         endif
         write(nu_diag,*) '1st check done'
-        !call  nf90_inq_varid(ncid, "TLAT", varid)
         varname = 'TLAT'
-        status = nf90_inq_varid(ncid, trim(varname), varid)
-        if (status /= nf90_noerr) then
-          call abort_ice ( &
-              'sub_WW3_dataread: Cannot find variable '//trim(varname) )
-        endif
-        !status = nf90_inquire_variable(ncid, varid, ndims = numDims)
-        !status = nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims))
-        !status = nf90_inquire_dimension(ncid, rhDimIds(1), len = N_lat)
-        !allocate(ww3_lat(N_lat,1))
-
-        ! call check( nf90_inq_varid(ncid, trim(varname), varid) )
+         call check( nf90_inq_varid(ncid, trim(varname), varid) )
         write (nu_diag,*) ' inq is done'
     	   call check( nf90_inquire_variable(ncid, varid, ndims = numDims) )
          call check( nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims)) )
          call check( nf90_inquire_dimension(ncid, rhDimIds(1), len = N_lat) )
-         N_lat = 384
+         N_lat = 384 ! grid resolution
          allocate(ww3_lat(1,N_lat)) ! noah day this used to be (N_lat,1)
          write(nu_diag,*) 'Number of dimensions', numDims
          write(nu_diag,*) 'lat done', N_lat
          varname = 'TLON'
-         !status = nf90_inq_varid(ncid, trim(varname), varid)
-         !status = nf90_inquire_variable(ncid, varid, ndims = numDims)
-         !status = nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims))
-         !status = nf90_inquire_dimension(ncid, rhDimIds(1), len = N_lon)
-         !allocate(ww3_lon(N_lon,1))
          call check( nf90_get_var(ncid, varid, ww3_lat) )
          write(nu_diag,*) ' ww3_lat(1,N_lat) : ', ww3_lat(1,N_lat)
          write(nu_diag,*) ' ww3_lat(N_lat,1) : ', ww3_lat(N_lat,1)
@@ -344,11 +322,6 @@ use ice_forcing, only: check
          allocate(ww3_lon(N_lon,1))
          write(nu_diag,*) 'lon done', N_lon
          varname = 'time'
-         !status = nf90_inq_varid(ncid, trim(varname), varid)
-         !status = nf90_inquire_variable(ncid, varid, ndims = numDims)
-         !status = nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims))
-         !status = nf90_inquire_dimension(ncid, rhDimIds(1), len = N_tm)
-         !allocate(ww3_tm(N_tm,1))
          call check( nf90_get_var(ncid, varid, ww3_lon) )
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
     	   call check( nf90_inquire_variable(ncid, varid, ndims = numDims) )
@@ -356,17 +329,7 @@ use ice_forcing, only: check
          call check( nf90_inquire_dimension(ncid, rhDimIds(1), len = N_tm) )
          allocate(ww3_tm(N_tm,1))
          write(nu_diag,*) 'time done', N_tm
-         !status = nf90_get_var(ncid, varid, ww3_tm)
          varname = 'hs'
-         !allocate(ww3_swh_full(N_lon,N_lat,N_tm))
-         !status = nf90_inq_varid(ncid, trim(varname), varid)
-         !if (status /= nf90_noerr) then
-        !   call abort_ice ( &
-        !       'sub_WW3_dataread: Cannot find variable '//trim(varname) )
-         !endif
-         !status = nf90_get_var(ncid, varid, ww3_swh_full)
-         !ww3_swh_full = c2*eps3*ww3_swh_full
-
          call check( nf90_get_var(ncid, varid, ww3_tm) )
          allocate(ww3_swh_full(N_lon,N_lat,N_tm))
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
@@ -374,22 +337,12 @@ use ice_forcing, only: check
          ww3_swh_full = c2*eps3*ww3_swh_full
         write(nu_diag,*) 'swh done', SHAPE(ww3_swh_full)
         varname = 'fp'
-        !allocate(ww3_fp_full(N_lon,N_lat,N_tm))
-        !status = nf90_inq_varid(ncid, trim(varname), varid)
-        !status = nf90_get_var(ncid, varid, ww3_fp_full)
-        !ww3_fp_full = eps3*ww3_fp_full
-
          allocate(ww3_fp_full(N_lon,N_lat,N_tm))
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
          call check( nf90_get_var(ncid, varid, ww3_fp_full) )
          ww3_fp_full = eps3*ww3_fp_full
          write(nu_diag,*) 'fp done', SHAPE(ww3_fp_full)
          varname = 'dir'
-         !allocate(ww3_dir_full(N_lon,N_lat,N_tm))
-         !status =  nf90_inq_varid(ncid, trim(varname), varid)
-         !status = nf90_get_var(ncid, varid, ww3_dir_full)
-         !ww3_dir_full = eps1*ww3_dir_full ! in degrees at this point
-         !write(nu_diag,*) 'the max val is:' MAXVAL(ww3_dir_full,1)
   	   allocate(ww3_dir_full(N_lon,N_lat,N_tm))
   	   call check( nf90_inq_varid(ncid, trim(varname), varid) )
   	   call check( nf90_get_var(ncid, varid, ww3_dir_full) )
@@ -397,7 +350,6 @@ use ice_forcing, only: check
   	   write(nu_diag,*) 'dirs done'
   	   call check( nf90_close(ncid))
          write(nu_diag,*) '    -> WAVE DATA LOADED, N_tm=',N_tm
-         !print*, '    -> WAVE DATA LOADED, N_tm=',N_tm
        endif ! WAVE_METH
 
    end subroutine sub_WW3_dataread
