@@ -5590,7 +5590,8 @@ if (cmt.ne.0) then
 end if
 ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
 
-i = 1 ! index for nx_block
+
+i = ilo ! index for nx_block
 j = 1 ! block index
 
 do lp=1,N_lon
@@ -5608,25 +5609,40 @@ do lp=1,N_lon
     endif
   end if ! lp+ind_lon
   i = i + 1 ! tick up until i = ihi
-  if (mod(lp,ihi-1).eq.0) then
-    i = 2 ! reset nx_block index, 1 is a ghost cell
+  if (mod(i,ihi+1).eq.0) then
+    i = ilo ! reset nx_block index, 1 is a ghost cell
     j = j + 1 ! set for the next block
   end if
 end do
 
 ! GHOST CELLS
 ! Replicate the value for ilo into the ghost cells
-do i=1,nblocks
-  swh(1,dum_wavemask,i) = swh(ilo,dum_wavemask,i)
-  ppd(1,dum_wavemask,i) = ppd(ilo,dum_wavemask,i)
-  mwd(1,dum_wavemask,i) = mwd(ilo,dum_wavemask,i)
+do j=1,nblocks
+  this_block = get_block(blocks_ice(j),j)
+  ilo = this_block%ilo
+  ihi = this_block%ihi
+  jlo = this_block%jlo
+  jhi = this_block%jhi
+  do i = 1,ilo+1
+    swh(i,dum_wavemask,j) = swh(ilo+1,dum_wavemask,j)
+    ppd(i,dum_wavemask,j) = ppd(ilo+1,dum_wavemask,j)
+    mwd(i,dum_wavemask,j) = mwd(ilo+1,dum_wavemask,j)
+  end do
 end do
 ! at end
-do i=1,nblocks
-  swh(ihi+1,dum_wavemask,i) = swh(ihi,dum_wavemask,i)
-  ppd(ihi+1,dum_wavemask,i) = ppd(ihi,dum_wavemask,i)
-  mwd(ihi+1,dum_wavemask,i) = mwd(ihi,dum_wavemask,i)
+do j=1,nblocks
+  this_block = get_block(blocks_ice(j),j)
+  ilo = this_block%ilo
+  ihi = this_block%ihi
+  jlo = this_block%jlo
+  jhi = this_block%jhi
+  do i = ihi,nx_block
+    swh(i,dum_wavemask,j) = swh(ihi,dum_wavemask,j)
+    ppd(i,dum_wavemask,j) = ppd(ihi,dum_wavemask,j)
+    mwd(i,dum_wavemask,j) = mwd(ihi,dum_wavemask,j)
+  end do
 end do
+
 
 !if (iblk.lt.12) then
 !do lp_b=1,nblocks
