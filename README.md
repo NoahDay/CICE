@@ -23,7 +23,8 @@ Attenuation is computed as per the observation of Meylan et al. (2014) currently
     
 `increment_floe` is the main script in the module, it calls all other files in the `wave_ice_code` and exists within CICE code. This code first initalises: frequency min/max, angular frequencies, frequency, wave direction, initial energy spec, wavelength, wave number, dummy spectral moments, wave spectrum tolerance, spectrum passed through ice-covered ocean, sine mean wave direction for rows, values required for calculations of mean wave direction, WIM termination flags, attenuation parameters, and points in frequency and angular domains.
     
-This code proceeds by defining the wave mask edge and propagate waves into ice, define attenuation coefficient coefficients. Then it calculates the wavelengths and wave number by - <img src="https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t " /> 
+This code proceeds by defining the wave mask edge and propagate waves into ice, define attenuation coefficient coefficients. Then it calculates the wavelengths and wave number by 
+- <img src="https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t " /> 
 
 $$\lambda = \frac{gT^2}{2\pi}$$, $\kappa = \frac{2\pi}{\lambda}$ as well as direction $th_{in} = -\frac{\pi}{2} + \frac{(lp_{i}-1)\pi}{nth_{in}-1}$. Then the Bretschneider SDF function is called to initialise the wave spectrum. 
     
