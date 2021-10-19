@@ -2459,6 +2459,7 @@
       character(len=64) :: fieldname !netcdf field name
       character (char_len_long) :: uwind_file_old
       character(len=*), parameter :: subname = '(JRA55_data)'
+      write(nu_diag,*) 'local_debug: ', local_debug
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
@@ -5508,7 +5509,9 @@ integer (kind=int_kind) :: &
       use ice_grid, only: tlon, tlat
       use icepack_parameters, only: puny ! Noah Day WIM
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: blocks_ice, nblocks ! Noah Day !
+      use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
+      use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5590,7 +5593,6 @@ if (cmt.ne.0) then
 end if
 ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
 
-
 i = ilo ! index for nx_block
 j = 1 ! block index
 
@@ -5599,13 +5601,21 @@ do lp=1,N_lon
       if (dum_swh(lp+ind_lon-N_lon).gt.puny.and.dum_fp(lp+ind_lon-N_lon).gt.puny) then
          swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon-N_lon)
          ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon-N_lon)
-         mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
+         if (pi*dum_mwd(lp+ind_lon-N_lon)/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon)/c180.lt.3*pi/2) then
+           mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
+         else
+           mwd(i,dum_wavemask,j) = c0
+         end if
       endif
   else ! feed the horizontally translated data into CICE
     if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
        swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon)
        ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon)
-       mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon)/c180
+       if (pi*dum_mwd(lp+ind_lon)/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon)/c180.lt.4*pi/3) then
+         mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon)/c180
+       else
+         mwd(i,dum_wavemask,j) = c0
+       end if
     endif
   end if ! lp+ind_lon
   i = i + 1 ! tick up until i = ihi
@@ -5615,33 +5625,62 @@ do lp=1,N_lon
   end if
 end do
 
+call ice_HaloUpdate (swh,             halo_info, &
+                     field_loc_center,  field_type_scalar)
+call ice_HaloUpdate (ppd,             halo_info, &
+                    field_loc_center,  field_type_scalar)
+call ice_HaloUpdate (mwd,             halo_info, &
+                     field_loc_center,  field_type_scalar)
+
+
 ! GHOST CELLS
 ! Replicate the value for ilo into the ghost cells
-do j=1,nblocks
-  this_block = get_block(blocks_ice(j),j)
-  ilo = this_block%ilo
-  ihi = this_block%ihi
-  jlo = this_block%jlo
-  jhi = this_block%jhi
-  do i = 1,ilo+1
-    swh(i,dum_wavemask,j) = swh(ilo+1,dum_wavemask,j)
-    ppd(i,dum_wavemask,j) = ppd(ilo+1,dum_wavemask,j)
-    mwd(i,dum_wavemask,j) = mwd(ilo+1,dum_wavemask,j)
-  end do
-end do
+!do j=2,nblocks
+!  this_block = get_block(blocks_ice(j),j)
+!  ilo = this_block%ilo
+!  ihi = this_block%ihi
+!  jlo = this_block%jlo
+!  jhi = this_block%jhi
+!  do i = 1,ilo-1
+!    swh(i,dum_wavemask,j) = swh(ilo,dum_wavemask,j)
+!    ppd(i,dum_wavemask,j) = ppd(ilo,dum_wavemask,j)
+!    mwd(i,dum_wavemask,j) = mwd(ilo,dum_wavemask,j)
+!  end do
+!end do
+
+
+!  ! now do it for the block below
+!!  j = j-1 ! block below
+!!  this_block = get_block(blocks_ice(j),j)
+!!  ilo = this_block%ilo
+!!  ihi = this_block%ihi
+!!  jlo = this_block%jlo
+!!  jhi = this_block%jhi
+!!  do i = ihi+1,nx_block
+!!    swh(i,dum_wavemask,j) = swh(ilo,dum_wavemask,j+1) ! now j+1 = j
+!!    ppd(i,dum_wavemask,j) = ppd(ilo,dum_wavemask,j+1)
+!!    mwd(i,dum_wavemask,j) = mwd(ilo,dum_wavemask,j+1)
+!!  end do
+!!end do
+
+
 ! at end
-do j=1,nblocks
-  this_block = get_block(blocks_ice(j),j)
-  ilo = this_block%ilo
-  ihi = this_block%ihi
-  jlo = this_block%jlo
-  jhi = this_block%jhi
-  do i = ihi,nx_block
-    swh(i,dum_wavemask,j) = swh(ihi,dum_wavemask,j)
-    ppd(i,dum_wavemask,j) = ppd(ihi,dum_wavemask,j)
-    mwd(i,dum_wavemask,j) = mwd(ihi,dum_wavemask,j)
-  end do
-end do
+!do j=1,nblocks
+!  this_block = get_block(blocks_ice(j),j)
+!  ilo = this_block%ilo
+!  ihi = this_block%ihi
+!  jlo = this_block%jlo
+!  jhi = this_block%jhi
+!  do i = ihi,nx_block
+!    swh(i,dum_wavemask,j) = swh(ihi,dum_wavemask,j)
+!    ppd(i,dum_wavemask,j) = ppd(ihi,dum_wavemask,j)
+!    mwd(i,dum_wavemask,j) = mwd(ihi,dum_wavemask,j)
+!  end do
+!end do
+
+
+
+
 
 
 !if (iblk.lt.12) then
@@ -5806,7 +5845,7 @@ end do
         do lp=1,nx_block
          swh(lp,dum_wavemask,lp_b) = c3 ! 0.28_dbl_kind !
          ppd(lp,dum_wavemask,lp_b) = c10
-         mwd(lp,dum_wavemask,lp_b) = 7d0*pi/6d0
+         mwd(lp,dum_wavemask,lp_b) = pi!7d0*pi/6d0
         enddo
        enddo
 
