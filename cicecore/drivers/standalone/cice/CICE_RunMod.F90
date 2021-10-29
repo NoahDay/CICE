@@ -167,13 +167,11 @@ if (WIM.eq.1) then
            endif
         endif
         !nmth = nmth+1
-        write(nu_diag,*) ' nww3 :', nww3
-        write(nu_diag,*) ' nmth:', nmth
         !print*, '    month=', nmth
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
 
         !nww3=1-nww3_dt
-        nww3=1-nww3_dt
+
 endif ! WIM
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -288,37 +286,34 @@ use ice_forcing, only: check
            fid              ! file id for netCDF file
 
 if (WIM.eq.1) then
-        ww3_file = trim(waveicedatadir)//'/'//trim(fname_ww3)//'.nc'
-        waveicedatadir = trim(waveicedatadir)
-        fname_ww3 = trim(fname_ww3)
-        !write(nu_diag,*) trim(waveicedatadir)//'/'//trim(fname_ww3)//'06.nc'
     if (WAVE_METH.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
         if (mth.eq.1) then
-        call check( nf90_open(ww3_file, NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '01.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.2) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// fname_ww3 // '02.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '02.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.3) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '03.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '03.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.4) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '04.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '04.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.5) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '05.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '05.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.6) then
-          write(nu_diag,*) waveicedatadir //'/'// fname_ww3 // '06.nc'
+          !write(nu_diag,*) trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc'
+         !call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
          call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.7) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '07.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '07.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.8) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '08.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '08.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.9) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '09.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '09.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.10) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '10.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '10.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.11) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '11.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '11.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.12) then
-         call check( nf90_open(waveicedatadir //'/'// fname_ww3 // '12.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '12.nc', NF90_NOWRITE, ncid) )
         endif
         write(nu_diag,*) '1st check done'
         varname = 'TLAT'
