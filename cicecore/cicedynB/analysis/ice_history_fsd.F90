@@ -336,7 +336,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, c4
-      use ice_history_shared, only: a2D, a3Df, a4Df, nfsd_hist, &
+      use ice_history_shared, only: a2D, a3Df, a3Dw, a4Df, nfsd_hist, & ! Noah Day adding a3Dw
          ncat_hist, accum_hist_field, n3Dacum, n4Dscum
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
@@ -527,14 +527,19 @@
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
-! Noah Day WIM -----------------------------------------------------------------
-      if (f_wave_spectrum(1:1)/= 'x') &
-      call accum_hist_field(n_wave_spectrum, iblk, nfsd_hist, &
-                             wave_spectrum(:,:,1:nfreq,iblk), a3Df)
-! ------------------------------------------------------------------------------
-
 
       endif ! a3Df allocated
+
+! Noah Day WIM -----------------------------------------------------------------
+  if (allocated(a3Dw)) then
+
+        if (f_wave_spectrum(1:1)/= 'x') &
+        call accum_hist_field(n_wave_spectrum, iblk, nfsd_hist, &
+                               wave_spectrum(:,:,1:nfsd_hist,iblk), a3Df)
+  end if ! a3Dw allocated
+  ! ------------------------------------------------------------------------------
+
+
 
       ! 4D floe size, thickness category fields
       if (allocated(a4Df)) then
