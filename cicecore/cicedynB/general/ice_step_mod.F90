@@ -862,9 +862,10 @@
                                mwd(:,:,iblk),   & ! loc_mwd
                                ifd(:,:,iblk),   & ! ifloe
                               ov_conc, ov_vol, & ! afice, vfice
-                               wavemask_dyn)      ! dum_wavemask
+                               wavemask_dyn,   & ! dum_wavemask
+                               wave_spectrum(:,:,:,iblk)) ! wave spectrum
   !if (cmt.ne.0)
-  !write(nu_diag,*)'     swh after increment_floe: ', swh(:,wavemask_dyn,iblk)
+  !!write(nu_diag,*)'     wave_spectrum after increment_floe: ', wave_spectrum(i,wavemask_dyn,:,iblk)
 
     else !!! Wave-ice interaction code OFF
 
@@ -1006,14 +1007,15 @@
           if (cmt.ne.0) then
             write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
             write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
-            write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', SHAPE(wave_spectrum)
+            write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
             write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
+            write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
           end if ! cmt
-          do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
-             wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
-           end do
+          !!do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
+            !! wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
+           !!end do
           !loc_swh     = fn_SpecMoment(swh(i,j,:,iblk),nfreq,1,om,mean_wave_dir(i,j,iblk),0,nu_diag)
-          !wave_sig_ht(i,j,iblk)     = c4*(loc_swh**(p5)) ! recalculating the SWH from the Spectrum at that point
+          ! c4*(loc_swh**(p5)) ! recalculating the SWH from the Spectrum at that point
           if (cmt.ne.0) then
             write(nu_diag,*) ' ---- > SWH(i,j,iblk) after : ', wave_sig_ht(i,j,iblk)
             write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)

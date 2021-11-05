@@ -165,7 +165,7 @@ end subroutine init_floe_0
         subroutine increment_floe (nx_block, ny_block,                   &
                                   dt, tmask, Lcell,                      &
                                   loc_swh, loc_ppd, loc_mwd,             &
-                                  ifloe,  afice,  vfice, dum_wavemask )
+                                  ifloe,  afice,  vfice, dum_wavemask, wave_spec_blk ) ! Noah Day 4/11/21
 
 ! !USES:
 !
@@ -192,7 +192,6 @@ end subroutine init_floe_0
       real (kind=dbl_kind), dimension(nx_block,ny_block), &
          intent(inout) :: &
           loc_swh, loc_ppd, loc_mwd, ifloe
-
 
 !     ! land/boundary mask, thickness (T-cell)
       logical (kind=log_kind), dimension (nx_block,ny_block), &
@@ -255,6 +254,11 @@ end subroutine init_floe_0
 !     ! array to hold values for calculation of mean wave directions
       real (kind=dbl_kind), dimension(2,nx_block) :: &
          mwd_hld
+
+
+ ! Noah Day 4/11/21
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nw_in), intent(inout) :: &
+        wave_spec_blk ! Noah Day 4/11/21, wave spectrum for the block
 
       integer, dimension(nx_block)                    :: tmt, tmt_hld ! WIM termination flag
 
@@ -353,12 +357,13 @@ end subroutine init_floe_0
         else ! IF there are waves:
          do lp_i=1,nw_in
           S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j))
+          wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
          end do
          ! want consistency between SWH definitions:
-         if (i.eq.1.and.cmt.ne.0) then
+         !if (i.eq.1.and.cmt.ne.0) then
 
          if (cmt.ne.0) then
-         !if (loc_swh(i,j).gt.c0) then
+         if (loc_swh(i,j).gt.c0) then
             write(nu_diag,*) '                      -> check: swh ', loc_swh(i,j)
             write(nu_diag,*) '                      ->        ppd ', loc_ppd(i,j)
             dum_sm0        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,0,nu_diag)
@@ -368,8 +373,9 @@ end subroutine init_floe_0
                  											2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
             write(nu_diag,*) '     -> om_in ', om_in
             write(nu_diag,*) '     -> S_init_in ', S_init_in
+            write(nu_diag,*) '     -> wave_spec_blk', wave_spec_blk(i,j,:)
         endif ! cmt
-         endif ! END COMMENT
+        endif ! END COMMENT
 
           ! A1. Use WIM to update wave spectrum and floe sizes
 
@@ -540,14 +546,16 @@ end subroutine init_floe_0
 	 dum_sm2        = fn_SpecMoment(wspec_row(i,:),nw_in,nth_in,om_in,th_in,2,nu_diag)
 	 loc_swh(i,j)   = 4d0*(dum_sm0**0.5d0)
 	 loc_ppd(i,j)   = 2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
+   wave_spec_blk(i,j,:) = wspec_row(i,:) ! Noah Day
 	endif
 	if (cmt.ne.0) then
        write(nu_diag,*) '           OUTPUT     -> i,j   =', i, j
-	 write(nu_diag,*) '                      -> tmt      =', tmt(i)
-     write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
+  	   write(nu_diag,*) '                      -> tmt      =', tmt(i)
+       write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
        write(nu_diag,*) '                      -> swh      =', loc_swh(i,j)
        write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
        write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
+       write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
        write(nu_diag,*) '<<<---------------------------------------------<<<'
       endif
      endif ! ENDIF tmask(i,j)
@@ -780,6 +788,7 @@ end subroutine init_floe_0
 	   fn_SpecMoment(wspec_row(i,:),nw_in,nth_in,om_in,th_in,2,nu_diag)
 	  loc_swh(i,j)   = 4d0*(dum_sm0**0.5d0)
 	  loc_ppd(i,j)   = 2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
+    wave_spec_blk(i,j,:) = wspec_row(i,:) ! Noah Day
        endif
 
        if (cmt.ne.0) then
@@ -790,6 +799,7 @@ end subroutine init_floe_0
         write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
         write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
         write(nu_diag,*) '                      -> wspec_row=', wspec_row(i,:)
+        write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
         write(nu_diag,*) '<<<---------------------------------------------<<<'
        endif
        endif ! END IF tmask(i,j)
