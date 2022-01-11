@@ -51,7 +51,7 @@
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff, init_wave_spec, &
-                init_wave_spec_usr, init_wave_spec_init, check
+                init_wave_spec_usr, init_wave_spec_init, check, init_wave_spec_long
                 ! Noah Day WIM, adding init_wave_spec, init_wave_spec_usr, init_wave_spec_init, check
 
       integer (kind=int_kind), public :: &
@@ -5584,8 +5584,8 @@ if (cmt.ne.0) then
   write(nu_diag,*) ' nblocks: ', nblocks
   write(nu_diag,*) ' ind_lon: ', ind_lon
   write(nu_diag,*) ' nx_block: ', nx_block
-  write(nu_diag,*) ' dum_swh: ', dum_swh
-  write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
+  !write(nu_diag,*) ' dum_swh: ', dum_swh
+  !write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
   write(nu_diag,*) ' N_lon: ', N_lon
   write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
   write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
@@ -5850,6 +5850,141 @@ call ice_HaloUpdate (mwd,             halo_info, &
        enddo
 
       end subroutine init_wave_spec_usr
+  !=======================================================================
+  !BOP
+  !
+  ! !ROUTINE: init_wave_spec_long
+  !
+  ! !DESCRIPTION:
+  !
+  !  Initialize wave spectrum per longitude: significant wave height and peak period (call prior to reading restart data)
+  !
+  ! !REVISION HISTORY:
+  !
+  ! author: N Day, U Adelaide
+  !
+  ! !INTERFACE:
+  !
+        subroutine init_wave_spec_long(dum_wavemask_vec,dum_swh,dum_fp,dum_mwd,N_lon,N_lat,iblk)
+  !
+  ! !USES:
+  !
+        use ice_flux, only: swh, ppd, mwd
+        use m_prams_waveice, only: pi, ww3_lat, ww3_lon, ww3_dir, cmt
+        use netcdf
+        use ice_grid, only: tlon, tlat
+        use icepack_parameters, only: puny ! Noah Day WIM
+        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
+        use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+
+  !
+  ! !INPUT/OUTPUT PARAMETERS:
+  !
+  !
+  !EOP
+  !
+  	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+  	  integer (kind=int_kind), dimension(nx_block), intent(in)  :: dum_wavemask_vec
+      !integer (kind=int_kind)   		    :: dum_wavemask
+  	  integer, intent(in)                               :: N_lon, N_lat !, DUM_METH
+  	  real(kind=dbl_kind), dimension(N_lon,N_lat), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+  	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3 !, dumlatloc
+  !	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+  	  integer                               :: ind_lon
+
+      integer (kind=int_kind), intent(in) :: &
+         iblk    ! block index
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         i, j, len               ! horizontal indices
+
+
+       type (block) :: &
+          this_block         ! block information for current block
+
+  	  do lp_b=1,nblocks
+         do lp_i=1,nx_block
+         do lp_j=1,ny_block
+          swh(lp_i,lp_j,lp_b) = c0
+          ppd(lp_i,lp_j,lp_b) = c0
+          mwd(lp_i,lp_j,lp_b) = c0
+         enddo
+         enddo
+        enddo
+
+  !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+
+  ! NOAH DAY START
+  ind_lon_ww3 = minloc(abs(ww3_lon-c0),dim=1) ! find the difference in grids
+  ! CICE starts at lon = 0, ww3 does not.
+
+  this_block = get_block(blocks_ice(iblk),iblk)
+  ilo = this_block%ilo
+  ihi = this_block%ihi
+  jlo = this_block%jlo
+  jhi = this_block%jhi
+
+  len = size(dum_swh)
+  if (cmt.ne.0) then
+    write(nu_diag,*) ' <---------------  block info: -------------------->'
+    write(nu_diag,*) ' nblocks: ', nblocks
+    write(nu_diag,*) ' ind_lon: ', ind_lon
+    write(nu_diag,*) ' nx_block: ', nx_block
+    !write(nu_diag,*) ' dum_swh: ', dum_swh
+    write(nu_diag,*) ' swh: '!, SHAPE(swh(:,dum_wavemask,:))
+    write(nu_diag,*) ' N_lon: ', N_lon
+    write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+    write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+    write(nu_diag,*) '<-------------------------------------------------->'
+  end if
+  ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
+
+  i = ilo ! index for nx_block
+  j = 1 ! block index
+
+  do lp=1,N_lon
+      if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
+        if (dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny) then
+           swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i))
+           ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i))
+           if (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.lt.3*pi/2) then
+             mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
+           else
+             mwd(i,dum_wavemask_vec(i),j) = c0
+           end if
+        endif
+    else ! feed the horizontally translated data into CICE
+      if (dum_swh(lp+ind_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon,dum_wavemask_vec(i)).gt.puny) then
+         swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon,dum_wavemask_vec(i))
+         ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon,dum_wavemask_vec(i))
+         if (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.lt.4*pi/3) then
+           mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180
+         else
+           mwd(i,dum_wavemask_vec(i),j) = c0
+         end if
+      endif
+    end if ! lp+ind_lon
+    i = i + 1 ! tick up until i = ihi
+    if (mod(i,ihi+1).eq.0) then
+      i = ilo ! reset nx_block index, 1 is a ghost cell
+      j = j + 1 ! set for the next block
+    end if
+  end do
+
+  call ice_HaloUpdate (swh,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ppd,             halo_info, &
+                      field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (mwd,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+
+  end subroutine init_wave_spec_long
+
 
 !=======================================================================
 !BOP
@@ -5875,7 +6010,7 @@ call ice_HaloUpdate (mwd,             halo_info, &
       end if
      end subroutine check
 
-! Noah Day WIM ^=======================================================================
+! Noah Day WIM =======================================================================
 
 end module ice_forcing
 

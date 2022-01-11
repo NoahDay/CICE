@@ -563,8 +563,9 @@
       use ice_constants, only: max_floediam, wavemask
       use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
              ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
-             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt
-      use ice_forcing, only: init_wave_spec,init_wave_spec_usr
+             OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt, WIM_LONG
+      use ice_forcing, only: init_wave_spec,init_wave_spec_usr,init_wave_spec_long
+      use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
 ! ------------------------------------------------------------------------------
 
       real (kind=dbl_kind), intent(in) :: &
@@ -604,6 +605,9 @@
 
       real(kind=dbl_kind)                  :: loc_swh ! dummy swh holder
 
+      real (kind=dbl_kind), dimension(1) :: &
+         temp_loc
+
       ! concentration coefficient, average floe size, length of cell, zeroth moment, second moment
       ! ice thickness
       !real(kind=dbl_kind) :: kappa, fr, mass, Es, om_crit
@@ -633,8 +637,8 @@
       integer (kind=4)          ::   &
          wavemask_dyn		 ! LB (Sept `14): dynamic ice edge/wavemask
 
-     integer (kind=int_kind), dimension(nblocks)          ::   &
-        wavemask_dyn_vec		 !Noah Day, dynamic ice edge/wavemask vector (for each block)
+     integer (kind=int_kind), dimension(nx_block)          ::   &
+        wavemask_dyn_vec, mn_lat_vec, dumlatloc_vec !Noah Day, dynamic ice edge/wavemask vector (for each block)
 
        integer (kind=int_kind), dimension(nx_block*ny_block) :: &
           indxi, indxj     ! indirect indices for cells with aicen > puny
@@ -736,11 +740,11 @@
           indxj(icells) = jj
           if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
            wavemask_dyn = jj
-           !wavemask_dyn_vec(iblk)
           endif
          endif
        enddo               ! ii
      enddo                ! jj
+
 
 
 ! Noah Day recording the wave mask for all blocks
@@ -773,12 +777,12 @@
 !endif
 
 
-  if (cmt.ne.0) then
+  !if (cmt.ne.0) then
       write(nu_diag,*) 'indxi: ', ii
       write(nu_diag,*) ' indxj: ', jj
       write(nu_diag,*) 'wave mask is: ', wavemask_dyn
-      !write(nu_diag,*) ' wavemask_dyn_vec(i) = jj',  wavemask_dyn_vec
-  end if !cmt
+
+  !end if !cmt
 
     if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON
 
@@ -791,18 +795,60 @@
      endif ! cmt
 
      mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
+
+
      if (cmt.ne.0) write(nu_diag,*) ' mean latitude: ', mn_lat, mn_lat*c180/pi
 
      if (WAVE_METH.eq.1) then
 
-              !dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=1)
-
        ! Finding the lateral degree where to propagate from
-     dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
-     if (cmt.ne.0) write(nu_diag,*)'     dumlatloc: ', dumlatloc
+       dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
+       if (cmt.ne.0) write(nu_diag,*)'     dumlatloc: ', dumlatloc
 
-      call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
-             	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
+
+
+       if (WIM_LONG.eq.1) then
+         write(nu_diag,*) ' Longitudinal WIM Starting.....'
+           ! Calculate the wavemask for each longitude
+           wavemask_dyn_vec(:) = 0
+           do jj = jlo, jhi
+            do ii = ilo, ihi
+              if (aice(ii,jj,iblk).gt.puny) then
+               icells = icells + 1
+               indxi(icells) = ii
+               indxj(icells) = jj
+               if ((jj.lt.150).and.(jj.gt.-1)) then
+                wavemask_dyn_vec(ii) = jj
+               endif
+              endif
+            end do
+          end do
+        !  write(nu_diag,*) 'fixing dum_wavemask edges'
+        wavemask_dyn_vec(1) = wavemask_dyn_vec(2)
+        wavemask_dyn_vec(nx_block) = wavemask_dyn_vec(nx_block-1)
+        !write(nu_diag,*) 'done.'
+        !  write(nu_diag,*) ' wavemask_dyn_vec(i) = jj',  wavemask_dyn_vec
+          dumlatloc_vec(:) = 0
+
+          do ii = ilo, ihi
+              temp_loc = minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
+              dumlatloc_vec(ii) = temp_loc(1)
+              !write(nu_diag,*)'     dumlatloc: ', minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
+          end do
+
+          call init_wave_spec_long(wavemask_dyn_vec,ww3_swh(:,:), &
+                ww3_fp(:,:),ww3_dir(:,:),size(ww3_lon),size(ww3_lat),iblk)
+
+            !do ii = ilo, ihi
+            !    write(nu_diag,*) ' SWH.....', swh(ii,wavemask_dyn_vec(ii),iblk)
+            !end do
+
+
+      else ! Run blockwise
+        write(nu_diag,*) ' Blockwise WIM.....'
+          call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
+               	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
+      endif ! WIM_LONG
 
       if (OVERWRITE_DIRS.eq.1) then
            !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
@@ -814,7 +860,7 @@
        else
         call init_wave_spec_usr(wavemask_dyn)
         write(nu_diag,*) '         -> Calling init_wave_spec_usr'
-       endif
+    endif ! WAVE_METH
 
        if (1.eq.0) then ! reinitialise floe diameters (no memory)
        !if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
@@ -852,7 +898,21 @@
 !   maxval(swh(:,:,iblk),1)
 !write(nu_diag,*) 'swh before increment_floe:', swh(:,wavemask_dyn,1)
 !mwd(:,:,iblk) = pi
-
+      if (WIM_LONG.eq.1) then
+        write(nu_diag,*) 'Calling increment_floe_long..............'
+        call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
+                                dt,              & ! dt
+                                tmask(:,:,iblk), & ! tmask
+                                HTE(:,:,iblk),   & ! Lcell
+                                swh(:,:,iblk),   & ! loc_swh
+                                ppd(:,:,iblk),   & ! loc_ppd
+                                mwd(:,:,iblk),   & ! loc_mwd
+                                ifd(:,:,iblk),   & ! ifloe
+                               ov_conc, ov_vol, & ! afice, vfice
+                                wavemask_dyn,   & ! dum_wavemask
+                                wavemask_dyn_vec,   & ! dum_wavemask
+                                wave_spectrum(:,:,:,iblk)) ! wave spectrum
+      else
        call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
                                dt,              & ! dt
                                tmask(:,:,iblk), & ! tmask
@@ -864,6 +924,8 @@
                               ov_conc, ov_vol, & ! afice, vfice
                                wavemask_dyn,   & ! dum_wavemask
                                wave_spectrum(:,:,:,iblk)) ! wave spectrum
+                               !write(nu_diag,*) ' Called increment floe'
+     endif ! WIM_LONG
   !if (cmt.ne.0)
   !!write(nu_diag,*)'     wave_spectrum after increment_floe: ', wave_spectrum(i,wavemask_dyn,:,iblk)
 
@@ -1005,11 +1067,11 @@
         !   Using Bretschneider to create a wave spectrum
         if (wave_sig_ht(i,j,iblk).gt.puny.and.peak_period(i,j,iblk).gt.puny) then
           if (cmt.ne.0) then
-            write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
-            write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
-            write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
-            write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
-            write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
+            !write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
+            !write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
+            !write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
+            !write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
+            !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
           end if ! cmt
           !!do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
             !! wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
@@ -1017,8 +1079,8 @@
           !loc_swh     = fn_SpecMoment(swh(i,j,:,iblk),nfreq,1,om,mean_wave_dir(i,j,iblk),0,nu_diag)
           ! c4*(loc_swh**(p5)) ! recalculating the SWH from the Spectrum at that point
           if (cmt.ne.0) then
-            write(nu_diag,*) ' ---- > SWH(i,j,iblk) after : ', wave_sig_ht(i,j,iblk)
-            write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
+            !write(nu_diag,*) ' ---- > SWH(i,j,iblk) after : ', wave_sig_ht(i,j,iblk)
+            !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
           end if ! cmt
         else
             wave_spectrum(i,j,:,iblk) = c0
