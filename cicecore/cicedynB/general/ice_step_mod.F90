@@ -777,12 +777,12 @@
 !endif
 
 
-  !if (cmt.ne.0) then
+  if (cmt.ne.0) then
       write(nu_diag,*) 'indxi: ', ii
       write(nu_diag,*) ' indxj: ', jj
       write(nu_diag,*) 'wave mask is: ', wavemask_dyn
 
-  !end if !cmt
+  end if !cmt
 
     if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON
 
@@ -808,7 +808,7 @@
 
 
        if (WIM_LONG.eq.1) then
-         write(nu_diag,*) ' Longitudinal WIM Starting.....'
+         !write(nu_diag,*) ' Longitudinal WIM Starting.....'
            ! Calculate the wavemask for each longitude
            wavemask_dyn_vec(:) = 0
            do jj = jlo, jhi
@@ -899,7 +899,7 @@
 !write(nu_diag,*) 'swh before increment_floe:', swh(:,wavemask_dyn,1)
 !mwd(:,:,iblk) = pi
       if (WIM_LONG.eq.1) then
-        write(nu_diag,*) 'Calling increment_floe_long..............'
+        !write(nu_diag,*) 'Calling increment_floe_long..............'
         call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
                                 dt,              & ! dt
                                 tmask(:,:,iblk), & ! tmask

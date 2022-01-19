@@ -271,7 +271,7 @@ end subroutine init_floe_0
 
 !!! Define wave mask edge and propagate waves into ice:
      if (cmt.ne.0) then
-      !write(nu_diag,*) '    in increment_floe -> wavemask=', dum_wavemask
+      write(nu_diag,*) '    in increment_floe -> wavemask=', dum_wavemask
      endif
 
 !!! Define attenuation coefficient coefficients
@@ -349,7 +349,7 @@ end subroutine init_floe_0
             !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
            endif
            if (afice(i,j).lt.tolice) then
-            !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+            write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
            endif
            !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
           endif ! END IF COMMENT
@@ -596,10 +596,10 @@ end subroutine init_floe_0
          ifloe(i,j) = floe_sz_pancake
          if (cmt.ne.0) then
           if (vfice(i,j).lt.tolh) then
-           !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
+           write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
           endif
           if (afice(i,j).lt.tolice) then
-           !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+           write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
           endif
           !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
          endif ! END IF COMMENT
@@ -627,7 +627,7 @@ end subroutine init_floe_0
            nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
        endif ! ENDIF (do_coupled.ne.0)
        !print*, '... done wave-ice routine'
-       ifloe(i,j) = D1
+       !!ifloe(i,j) = D1
         !print*, '... set ifloe(i,j)=', ifloe(i,j), 'D1=', D1
        endif ! ENDIF ws_tol
        else
@@ -649,10 +649,10 @@ end subroutine init_floe_0
         ifloe(i,j) = floe_sz_pancake
         if (cmt.ne.0) then
          if (vfice(i,j).lt.tolh) then
-          !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
+          write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
          endif
          if (afice(i,j).lt.tolice) then
-          !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+          write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
          endif
          !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
         endif ! END IF COMMENT
@@ -886,6 +886,9 @@ end subroutine init_floe_0
   !     ! Counters
         integer (kind=int_kind)            :: i, j, ij, jj
 
+        ! Wavemask
+        integer (kind=int_kind)            :: max_wavemask ! maximum value of the wavemask vector
+
   !	  ! For the wave-ice code:
   !     ! counter
         integer :: lp_i, lp_j
@@ -941,14 +944,14 @@ end subroutine init_floe_0
 
   !     ! attenuation
   	  integer              :: idd_alp
-        real(kind=dbl_kind)  :: dum_alp
+      real(kind=dbl_kind)  :: dum_alp
 
   !EOP
   !
 
   !!! Define wave mask edge and propagate waves into ice:
        if (cmt.ne.0) then
-        !write(nu_diag,*) '    in increment_floe_long -> wavemask=', dum_wavemask_vec
+        write(nu_diag,*) '    in increment_floe_long -> wavemask=', dum_wavemask_vec
        endif
 
   !!! Define attenuation coefficient coefficients
@@ -996,9 +999,9 @@ end subroutine init_floe_0
 
    !!! Begin at wavemask (only difference is initialisation)
    if (cmt.ne.0) then
-    !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
-    !write(nu_diag,*) '                      -> starting wavemask loop'
-    !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
+    write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
+    write(nu_diag,*) '                      -> starting wavemask loop'
+    write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
    endif
 
 
@@ -1015,15 +1018,15 @@ end subroutine init_floe_0
            mwd_row(i) = loc_mwd(i,j)
            if (loc_swh(i,j).lt.ws_tol) then
              if (cmt.ne.0) then
-                !write(nu_diag,*) '>>>--------------------------------------------->>>'
-                !write(nu_diag,*) '                         i, j = ', i, j
-                !write(nu_diag,*) '                         NOT running wave-ice routine'
-                !write(nu_diag,*) '                      -> sig wave ht <', ws_tol
-                !write(nu_diag,*) '<<<---------------------------------------------<<<'
+                write(nu_diag,*) '>>>--------------------------------------------->>>'
+                write(nu_diag,*) '                         i, j = ', i, j
+                write(nu_diag,*) '                         NOT running wave-ice routine'
+                write(nu_diag,*) '                      -> sig wave ht <', ws_tol
+                write(nu_diag,*) '<<<---------------------------------------------<<<'
              endif
              tmt(i) = 1
              if (afice(i,j).lt.tolice.or.vfice(i,j).lt.tolh) then
-               ifloe(i,j) = floe_sz_pancake
+               !ifloe(i,j) = floe_sz_pancake
                if (cmt.ne.0) then
                  if (vfice(i,j).lt.tolh) then
                   !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
@@ -1044,28 +1047,28 @@ end subroutine init_floe_0
 
              if (cmt.ne.0) then
              if (loc_swh(i,j).gt.c0) then
-                !write(nu_diag,*) '                      -> check: swh ', loc_swh(i,j)
-                !write(nu_diag,*) '                      ->        ppd ', loc_ppd(i,j)
+                write(nu_diag,*) '                      -> check: swh ', loc_swh(i,j)
+                write(nu_diag,*) '                      ->        ppd ', loc_ppd(i,j)
                 dum_sm0        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,0,nu_diag)
        	        dum_sm2        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,2,nu_diag)
-                !write(nu_diag,*) '                      ->        swh ', 4d0*(dum_sm0**0.5d0)
-                !write(nu_diag,*) '                      ->        ppd ', &
-              !         											2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
-                !write(nu_diag,*) '     -> om_in ', om_in
-                !write(nu_diag,*) '     -> S_init_in ', S_init_in
-                !write(nu_diag,*) '     -> wave_spec_blk', wave_spec_blk(i,j,:)
+                write(nu_diag,*) '                      ->        swh ', 4d0*(dum_sm0**0.5d0)
+                write(nu_diag,*) '                      ->        ppd ', &
+                       											2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
+                write(nu_diag,*) '     -> om_in ', om_in
+                write(nu_diag,*) '     -> S_init_in ', S_init_in
+                write(nu_diag,*) '     -> wave_spec_blk', wave_spec_blk(i,j,:)
              endif ! cmt
              endif ! END COMMENT
 
             ! A1. Use WIM to update wave spectrum and floe sizes
 
              if (cmt.ne.0) then
-              !write(nu_diag,*) '>>>--------------------------------------------->>>'
-              !write(nu_diag,*) '        INPUT         -> i,j   =', i, j
-      	      ! write(nu_diag,*) '                      -> ifloe =', ifloe(i,j)
-              !write(nu_diag,*) '                      -> swh   =', loc_swh(i,j)
-              !write(nu_diag,*) '                      -> ppd   =', loc_ppd(i,j)
-              !write(nu_diag,*) '                      -> mwd   =', 180d0*mwd_row(i)/pi
+              write(nu_diag,*) '>>>--------------------------------------------->>>'
+              write(nu_diag,*) '        INPUT A1        -> i,j   =', i, j
+      	       write(nu_diag,*) '                      -> ifloe =', ifloe(i,j)
+              write(nu_diag,*) '                      -> swh   =', loc_swh(i,j)
+              write(nu_diag,*) '                      -> ppd   =', loc_ppd(i,j)
+              write(nu_diag,*) '                      -> mwd   =', 180d0*mwd_row(i)/pi
       	     endif
 
              if (do_coupled.ne.0) then
@@ -1077,14 +1080,14 @@ end subroutine init_floe_0
        		        call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
        		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
        		   endif
-       		   ifloe(i,j) = D1
+       		   !ifloe(i,j) = D1
        		endif ! ENDIF ws_tol
          else ! Else TMASK
                if (cmt.ne.0) then
-                !write(nu_diag,*) '>>>--------------------------------------------->>>'
-                !write(nu_diag,*) '                         i, j = ', i, j
-                !write(nu_diag,*) '                      -> LAND'
-                !write(nu_diag,*) '<<<---------------------------------------------<<<'
+                write(nu_diag,*) '>>>--------------------------------------------->>>'
+                write(nu_diag,*) '                         i, j = ', i, j
+                write(nu_diag,*) '                      -> LAND'
+                write(nu_diag,*) '<<<---------------------------------------------<<<'
                endif
                tmt(i) = 1
         endif ! ENDIF tmask(i,j)
@@ -1092,9 +1095,9 @@ end subroutine init_floe_0
   enddo ! ENDDO i=1,nx_block
 
  if (cmt.ne.0) then
-  !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
-  !write(nu_diag,*) '                      -> do wave directions'
-  !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+  write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+  write(nu_diag,*) '                      -> do wave directions'
+  write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
  endif
 
  !print*, 'doing wave directions on wavemask loop'
@@ -1111,7 +1114,7 @@ end subroutine init_floe_0
            fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
           dum_sm0        = 4d0*(dum_sm0**0.5d0)
           if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-           write(nu_diag,*) '                      -> going south', 1
+           !write(nu_diag,*) '                      -> going south', 1
            !print*, '                      -> going south', 1
            wspec_row(1,:)  = wspec_row(1,:) + &
           						(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
@@ -1121,7 +1124,7 @@ end subroutine init_floe_0
           endif ! ENDIF -pi/4<mwd<pi/4
           ! if wave energy needs to be advected to the east ...
           if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-           write(nu_diag,*) '                      -> going east', 1
+           !write(nu_diag,*) '                      -> going east', 1
            wspec_row(2,:) = wspec_row(2,:) + &
            				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
            mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
@@ -1129,7 +1132,7 @@ end subroutine init_floe_0
            tmt_hld(2)     = 0
            ! if wave energy needs to be advected to the west (wrap around vector) ...
           elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-           write(nu_diag,*) '                      -> going west', 1
+           !write(nu_diag,*) '                      -> going west', 1
            wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
                                   (sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
            mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
@@ -1147,7 +1150,7 @@ end subroutine init_floe_0
           fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
      dum_sm0        = 4d0*(dum_sm0**0.5d0)
            if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-            write(nu_diag,*) '                      -> going south', nx_block
+            !write(nu_diag,*) '                      -> going south', nx_block
             wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
                                   (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
             mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
@@ -1157,7 +1160,7 @@ end subroutine init_floe_0
            endif   ! ENDIF -pi/4<mwd<pi/4
             ! if wave energy needs to be advected to the WEST ...
            if (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-            write(nu_diag,*) '                         going west', nx_block
+            !write(nu_diag,*) '                         going west', nx_block
             wspec_row(i-1,:) = wspec_row(i-1,:) + &
            	                         (sin(2d0*mwd_row(i))**2)*wspec_row_hld(i,:)
             mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
@@ -1165,7 +1168,7 @@ end subroutine init_floe_0
             tmt_hld(i-1)     = 0
             ! if wave energy needs to be advected to the EAST ...
            elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-            write(nu_diag,*) '                         going east', nx_block
+            !write(nu_diag,*) '                         going east', nx_block
             wspec_row(1,:)  = wspec_row(1,:) + &
                                    (sin(2d0*mwd_row(nx_block))**2)*wspec_row(nx_block,:)
             mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
@@ -1183,7 +1186,7 @@ end subroutine init_floe_0
       dum_sm0        = 4d0*(dum_sm0**0.5d0)
             if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
              ! South
-             write(nu_diag,*) '                      -> going south', i
+             !write(nu_diag,*) '                      -> going south', i
              wspec_row(i,:) = wspec_row(i,:) + &
              			(1d0-sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
              mwd_hld(1,i)   = mwd_hld(1,i) + mwd_row(i)*dum_sm0
@@ -1192,14 +1195,14 @@ end subroutine init_floe_0
             endif ! ENDIF -pi/4<mwd<pi/4
             ! East
             if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-             write(nu_diag,*) '                      -> going east', i
+             !write(nu_diag,*) '                      -> going east', i
              wspec_row(i+1,:) = wspec_row(i+1,:) + &
              					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
              mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
              mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
              tmt_hld(i+1)     = 0
             elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-             write(nu_diag,*) '                      -> going west', i
+             !write(nu_diag,*) '                      -> going west', i
              wspec_row(i-1,:) = wspec_row(i-1,:) + &
              				(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
              mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
@@ -1210,9 +1213,9 @@ end subroutine init_floe_0
     enddo ! i = nx_block
 
     if (cmt.ne.0) then
-     !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
-     !write(nu_diag,*) '                      -> update mean values', dum_wavemask_vec
-     !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+     write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+     write(nu_diag,*) '                      -> update mean values', dum_wavemask_vec
+     write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
     endif
 
     ! A3. Calculate mean parameters
@@ -1236,15 +1239,15 @@ end subroutine init_floe_0
             	 loc_ppd(i,j)   = 2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
                wave_spec_blk(i,j,:) = wspec_row(i,:) ! Noah Day
            endif
-          	if (cmt.ne.0) then
-                 !write(nu_diag,*) '           OUTPUT     -> i,j   =', i, j
-            	   !write(nu_diag,*) '                      -> tmt      =', tmt(i)
-                 !write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
-                 !write(nu_diag,*) '                      -> swh      =', loc_swh(i,j)
-                 !write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
-                 !write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
-                 !write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
-                 !write(nu_diag,*) '<<<---------------------------------------------<<<'
+        	if (cmt.ne.0) then
+                 write(nu_diag,*) '           OUTPUT A3    -> i,j   =', i, j
+            	   write(nu_diag,*) '                      -> tmt      =', tmt(i)
+                 write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
+                 write(nu_diag,*) '                      -> swh      =', loc_swh(i,j)
+                 write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
+                 write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
+                 write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
+                 write(nu_diag,*) '<<<---------------------------------------------<<<'
             endif
        endif ! ENDIF tmask(i,j)
   enddo ! ENDDO i=1,nblock
@@ -1254,22 +1257,41 @@ end subroutine init_floe_0
   tmt_hld(:)         = 1
 
   if (cmt.ne.0) then
-     !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
-     !write(nu_diag,*) '                      -> starting wave propagation'
-     !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
-     !write(nu_diag,*) 'MINIMUM: ', minval(dum_wavemask_vec)
+     write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
+     write(nu_diag,*) '                      -> starting wave propagation'
+     write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
+     write(nu_diag,*) 'MINIMUM: ', minval(dum_wavemask_vec)
+     write(nu_diag,*) 'max dum_wavemask is:', maxval(dum_wavemask_vec)
   endif
 
-  do jj=dum_wavemask-1,2,minval(dum_wavemask_vec)+1!-1
+!  if (maxval(dum_wavemask_vec).gt.0) then
+!    ! There is ice
+!    max_wavemask = maxval(dum_wavemask_vec)
+!  else
+!    ! No ice
+!    max_wavemask = 50
+!  end if ! maxval
+
+max_wavemask = dum_wavemask
+!write(nu_diag,*) 'max dum_wavemask is:', max_wavemask
+  do jj=1,max_wavemask!maxval(dum_wavemask_vec)!dum_wavemask-1,2,minval(dum_wavemask_vec)+1!-1
        if (cmt.ne.0) then
-          !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
-          !write(nu_diag,*) '                      -> jj=', jj
-          !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
+          write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
+          write(nu_diag,*) '                      -> jj=', jj
+          write(nu_diag,*) 'dum_wavemask is:', dum_wavemask
+
+          write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
        endif
 
        ! B1. Use WIM to update wave spectrum and floe sizes
        do i=1,nx_block
-         j = dum_wavemask_vec(i) - (dum_wavemask - jj) ! wavemask - (wavemask-j) = j
+         j = dum_wavemask_vec(i) - jj!(dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
+         !write(nu_diag,*) '>>>--------------------------------------------->>>'
+         !write(nu_diag,*) 'B1. j is:', j
+         !write(nu_diag,*) ' i is:', i
+         !write(nu_diag,*) 'dum_wavemask_vec is:', dum_wavemask_vec(i)
+         !write(nu_diag,*) 'jj is:', jj
+         !write(nu_diag,*) '<<<---------------------------------------------<<<'
          if (j.gt.0) then
             !print*, 'Hi: i,j=', i, j
             if (tmt(i).eq.0) then
@@ -1277,20 +1299,20 @@ end subroutine init_floe_0
                   if (tmask(i,j)) then
                        if (loc_swh(i,j+1).lt.ws_tol) then
                           if (cmt.ne.0) then
-                             !write(nu_diag,*) '>>>--------------------------------------------->>>'
-                             !write(nu_diag,*) '                         i, j = ', i, j
-                             !write(nu_diag,*) '                         NOT running wave-ice routine'
-                             !write(nu_diag,*) '                      -> sig wave ht <', ws_tol
+                             write(nu_diag,*) '>>>--------------------------------------------->>>'
+                             write(nu_diag,*) '                         i, j = ', i, j
+                             write(nu_diag,*) '                         NOT running wave-ice routine'
+                             write(nu_diag,*) '                      -> sig wave ht <', ws_tol
                           endif
                           tmt(i) = 1
                           if (afice(i,j).lt.tolice.or.vfice(i,j).lt.tolh) then
-                              ifloe(i,j) = floe_sz_pancake
+                              !ifloe(i,j) = floe_sz_pancake
                                   if (cmt.ne.0) then
                                       if (vfice(i,j).lt.tolh) then
-                                        !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
+                                        write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
                                       endif
                                       if (afice(i,j).lt.tolice) then
-                                        !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+                                        write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
                                       endif
                                       !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
                                   endif ! END IF COMMENT
@@ -1298,18 +1320,18 @@ end subroutine init_floe_0
                       else ! IF there are waves:
                          !print*, '... tmask=true'
                          if (cmt.ne.0) then
-                              !write(nu_diag,*) '>>>--------------------------------------------->>>'
-                              !write(nu_diag,*) '       INPUT          -> i,j      =', i, j
+                              write(nu_diag,*) '>>>--------------------------------------------->>>'
+                              write(nu_diag,*) '       INPUT  B1        -> i,j      =', i, j
                               !print*, '       INPUT          -> i,j      =', i, j
-                      	      !write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
+                      	      write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
                       	      !print*, '                      -> ifloe    =', ifloe(i,j)
-                              !write(nu_diag,*) '                      -> swh      =', loc_swh(i,j+1)
+                              write(nu_diag,*) '                      -> swh      =', loc_swh(i,j+1)
                               !print*, '                      -> swh      =', loc_swh(i,j+1)
-                              !write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j+1)
+                              write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j+1)
                               !print*, '                      -> ppd      =', loc_ppd(i,j+1)
-                              !write(nu_diag,*) '                      -> mwd      =', 180d0*mwd_row(i)/pi
+                              write(nu_diag,*) '                      -> mwd      =', 180d0*mwd_row(i)/pi
                               !print*, '                      -> mwd      =', 180d0*mwd_row(i)/pi
-                       endif  ! ENDIF if (cmt.ne.0) then
+                          endif  ! ENDIF if (cmt.ne.0) then
                        if (do_coupled.ne.0) then
                          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
                           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
@@ -1323,29 +1345,29 @@ end subroutine init_floe_0
                      endif ! ENDIF ws_tol
                    else ! tmask
                     if (cmt.ne.0) then
-                      ! write(nu_diag,*) '>>>--------------------------------------------->>>'
-                       !write(nu_diag,*) '                         i, j = ', i, j
-                       !write(nu_diag,*) '                      -> LAND'
-                       !write(nu_diag,*) '<<<---------------------------------------------<<<'
+                       write(nu_diag,*) '>>>--------------------------------------------->>>'
+                       write(nu_diag,*) '                         i, j = ', i, j
+                       write(nu_diag,*) '                      -> LAND'
+                       write(nu_diag,*) '<<<---------------------------------------------<<<'
                     endif
                     tmt(i)         = 1
                   endif ! ENDIF tmask(i,j)
             else ! tmt
                    if (cmt.ne.0) then
-                      !write(nu_diag,*) '>>>--------------------------------------------->>>'
-                      !write(nu_diag,*) '                         i, j = ', i, j
-                      !write(nu_diag,*) '                      -> tmt(i)=1'
+                      write(nu_diag,*) '>>>--------------------------------------------->>>'
+                      write(nu_diag,*) '                         i, j = ', i, j
+                      write(nu_diag,*) '                      -> tmt(i)=1'
                    endif
                    if (afice(i,j).lt.tolice.or.vfice(i,j).lt.tolh) then
-                      ifloe(i,j) = floe_sz_pancake
+                      !ifloe(i,j) = floe_sz_pancake
                       if (cmt.ne.0) then
                          if (vfice(i,j).lt.tolh) then
-                            !write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
+                            write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
                          endif
                          if (afice(i,j).lt.tolice) then
-                            !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+                            write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
                          endif
-                         !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
+                         write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
                       endif ! END IF COMMENT
                    endif  ! END IF h<tolh OR c<tolc
             endif ! ENDIF tmt(i)
@@ -1355,119 +1377,125 @@ end subroutine init_floe_0
        wspec_row(:,:) = c0     ! reset dummy vector
 
        if (cmt.ne.0) then
-        !  write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
-        !  write(nu_diag,*) '                      -> do wave directions 2'!, j
-        !  write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+          write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+          write(nu_diag,*) '                      -> do wave directions 2'!, j
+          write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
        endif
 
        ! B2. Redistribute energy according to mean directions
        ! LH Boundary:
        i=1
-       j = dum_wavemask_vec(i) - (dum_wavemask - jj) ! wavemask - (wavemask-j) = j
+       j = dum_wavemask_vec(i) - jj!dum_wavemask_vec(i) - (dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
        !write(nu_diag,*) ' Redistribute energy according to mean directions '
        !write(nu_diag,*) ' LH Boundary: j: ', j
        ! if the cell isn't land ...
-       if (tmask(1,j).and.tmt(1).ne.1) then
-          dum_sm0        = &
-          fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
-          dum_sm0        = 4d0*(dum_sm0**0.5d0)
-          if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-           wspec_row(1,:)  = wspec_row(1,:) + &
-          				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-           mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
-           mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
-           tmt_hld(1)      = 0
-          endif ! ENDIF -pi/4<mwd<pi/4
-          ! if wave energy needs to be advected to the east ...
-          if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-           wspec_row(2,:) = wspec_row(2,:) + &
-           				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-           mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
-           mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
-           tmt_hld(2)     = 0
-           ! if wave energy needs to be advected to the west (wrap around vector) ...
-          elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-           wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-                                 (sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(1,:)
-           mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
-           mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-           tmt_hld(nx_block)     = 0
-          endif ! ENDIF (tmask(2,j).and.sinmwd_row(1).lt.c0)
-       endif ! END IF TMASK
+       if (j.gt.0) then
+           if (tmask(1,j).and.tmt(1).ne.1) then
+              dum_sm0        = &
+              fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
+              dum_sm0        = 4d0*(dum_sm0**0.5d0)
+              if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+               wspec_row(1,:)  = wspec_row(1,:) + &
+              				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+               mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
+               mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
+               tmt_hld(1)      = 0
+              endif ! ENDIF -pi/4<mwd<pi/4
+              ! if wave energy needs to be advected to the east ...
+              if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+               wspec_row(2,:) = wspec_row(2,:) + &
+               				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+               mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
+               mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
+               tmt_hld(2)     = 0
+               ! if wave energy needs to be advected to the west (wrap around vector) ...
+              elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+               wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+                                     (sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(1,:)
+               mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
+               mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+               tmt_hld(nx_block)     = 0
+              endif ! ENDIF (tmask(2,j).and.sinmwd_row(1).lt.c0)
+           endif ! END IF TMASK
+        endif ! j > 0
        ! RH Boundary:
        i=nx_block
-       j = dum_wavemask_vec(i) - (dum_wavemask - jj) ! wavemask - (wavemask-j) = j
+       j = dum_wavemask_vec(i) - jj!dum_wavemask_vec(i) - (dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
         ! if the cell isn't land ...
-       if (tmask(nx_block,j).and.tmt(nx_block).ne.1) then
-            dum_sm0        = &
-              fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
-          dum_sm0        = 4d0*(dum_sm0**0.5d0)
-            if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-                 wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-                                      (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
-                 mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
-                                       mwd_row(nx_block)*dum_sm0
-                 mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-                 tmt_hld(nx_block)     = 0
-            endif ! ENDIF -pi/4<mwd<pi/4
-            ! if wave energy needs to be advected to the west ...
-            if (tmask(nx_block-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-                 wspec_row(nx_block-1,:) = wspec_row(nx_block-1,:) + &
-               	                         (sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
-                 mwd_hld(1,nx_block-1)   = mwd_hld(1,nx_block-1) + &
-               							  mwd_row(nx_block)*dum_sm0
-                 mwd_hld(2,nx_block-1)   = mwd_hld(1,nx_block-1) + dum_sm0
-                 tmt_hld(nx_block-1)     = 0
-                ! if wave energy needs to be advected to the east ...
-            elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-                 wspec_row(1,:) = wspec_row(1,:) + &
-                 				(sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
-                 mwd_hld(1,1)   = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
-                 mwd_hld(2,1)   = mwd_hld(2,1) + dum_sm0
-                 tmt_hld(1)     = 0
-           endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_hld(nx_block).gt.c0)
-       endif ! ENDIF TMASK
+        if (j.gt.0) then
+           if (tmask(nx_block,j).and.tmt(nx_block).ne.1) then
+                dum_sm0        = &
+                  fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
+              dum_sm0        = 4d0*(dum_sm0**0.5d0)
+                if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+                     wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+                                          (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
+                     mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
+                                           mwd_row(nx_block)*dum_sm0
+                     mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+                     tmt_hld(nx_block)     = 0
+                endif ! ENDIF -pi/4<mwd<pi/4
+                ! if wave energy needs to be advected to the west ...
+                if (tmask(nx_block-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+                     wspec_row(nx_block-1,:) = wspec_row(nx_block-1,:) + &
+                   	                         (sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
+                     mwd_hld(1,nx_block-1)   = mwd_hld(1,nx_block-1) + &
+                   							  mwd_row(nx_block)*dum_sm0
+                     mwd_hld(2,nx_block-1)   = mwd_hld(1,nx_block-1) + dum_sm0
+                     tmt_hld(nx_block-1)     = 0
+                    ! if wave energy needs to be advected to the east ...
+                elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+                     wspec_row(1,:) = wspec_row(1,:) + &
+                     				(sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
+                     mwd_hld(1,1)   = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
+                     mwd_hld(2,1)   = mwd_hld(2,1) + dum_sm0
+                     tmt_hld(1)     = 0
+               endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_hld(nx_block).gt.c0)
+           endif ! ENDIF TMASK
+        endif ! j > 0
        ! loop the inner cells...
        do i=2,nx_block-1
-         j = dum_wavemask_vec(i) - (dum_wavemask - jj) ! wavemask - (wavemask-j) = j
-          if (tmask(i,j).and.tmt(i).ne.1) then
-                 dum_sm0        = &
-                  fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
-                dum_sm0        = 4d0*(dum_sm0**0.5d0)
-                 if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-                     ! South
-                      wspec_row(i,:) = wspec_row(i,:) + &
-                     				(1d0-sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-                      mwd_hld(1,i)   = mwd_hld(1,i) + mwd_row(i)*dum_sm0
-                      mwd_hld(2,i)   = mwd_hld(2,i) + dum_sm0
-                      tmt_hld(i)     = 0
-                 endif ! ENDIF -pi/4<mwd<pi/4
-                 ! East
-                 if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-                      wspec_row(i+1,:) = wspec_row(i+1,:) + &
-                      					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-                      mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
-                      mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
-                      tmt_hld(i+1)     = 0
-                 elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-                      wspec_row(i-1,:) = wspec_row(i-1,:) + &
-                      					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-                      mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
-                      mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
-                      tmt_hld(i-1)     = 0
-                 endif ! ENDIF (tmask(i+1,j).and.sinmwd_row(i).lt.c0)
-          endif ! ENDIF TMASK
+         j = dum_wavemask_vec(i) - jj!dum_wavemask_vec(i) - (dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
+         if (j.gt.0) then
+              if (tmask(i,j).and.tmt(i).ne.1) then
+                     dum_sm0        = &
+                      fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
+                    dum_sm0        = 4d0*(dum_sm0**0.5d0)
+                     if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+                         ! South
+                          wspec_row(i,:) = wspec_row(i,:) + &
+                         				(1d0-sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+                          mwd_hld(1,i)   = mwd_hld(1,i) + mwd_row(i)*dum_sm0
+                          mwd_hld(2,i)   = mwd_hld(2,i) + dum_sm0
+                          tmt_hld(i)     = 0
+                     endif ! ENDIF -pi/4<mwd<pi/4
+                     ! East
+                     if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+                          wspec_row(i+1,:) = wspec_row(i+1,:) + &
+                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+                          mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
+                          mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
+                          tmt_hld(i+1)     = 0
+                     elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+                          wspec_row(i-1,:) = wspec_row(i-1,:) + &
+                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+                          mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
+                          mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
+                          tmt_hld(i-1)     = 0
+                     endif ! ENDIF (tmask(i+1,j).and.sinmwd_row(i).lt.c0)
+              endif ! ENDIF TMASK
+          endif !j > 0
        end do ! ENDDO i=2,nx_block-1
 
       if (cmt.ne.0) then
-       !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
-       !write(nu_diag,*) '                      -> update mean values'!, j
-       !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+       write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
+       write(nu_diag,*) '                      -> update mean values'!, j
+       write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
       endif
 
       ! B3. Calculate mean parameters
        do i=1,nx_block
-          j = dum_wavemask_vec(i) - (dum_wavemask - jj) ! wavemask - (wavemask-j) = j
+          j = dum_wavemask_vec(i) - jj!dum_wavemask_vec(i) - (dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
           if (j.gt.0) then
               if (tmask(i,j)) then
                    if (mwd_hld(2,i).gt.c0) then
@@ -1491,15 +1519,15 @@ end subroutine init_floe_0
                 endif
 
                if (cmt.ne.0) then
-                  !  write(nu_diag,*) '         OUTPUT       -> i,j      =', i, j
-                  !  write(nu_diag,*) '                      -> tmt      =', tmt(i)
-                  !  write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
-                  !  write(nu_diag,*) '                      -> swh      =', loc_swh(i,j)
-                  !  write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
-                  !  write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
-                  !  write(nu_diag,*) '                      -> wspec_row=', wspec_row(i,:)
-                  !  write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
-                  !  write(nu_diag,*) '<<<---------------------------------------------<<<'
+                    write(nu_diag,*) '         OUTPUT  B3     -> i,j      =', i, j
+                    write(nu_diag,*) '                      -> tmt      =', tmt(i)
+                    write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
+                    write(nu_diag,*) '                      -> swh      =', loc_swh(i,j)
+                    write(nu_diag,*) '                      -> ppd      =', loc_ppd(i,j)
+                    write(nu_diag,*) '                      -> mwd      =', 180d0*loc_mwd(i,j)/pi
+                    write(nu_diag,*) '                      -> wspec_row=', wspec_row(i,:)
+                    write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
+                    write(nu_diag,*) '<<<---------------------------------------------<<<'
                endif
               endif ! END IF tmask(i,j)
           endif ! j > 0
@@ -1512,9 +1540,9 @@ end subroutine init_floe_0
 enddo ! END do j=dum_wavemask-1,2,-1
 
 if (cmt.ne.0) then
-   !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
-   !write(nu_diag,*) '                      -> finished increment_floe_long'
-   !write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
+   write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
+   write(nu_diag,*) '                      -> finished increment_floe_long'
+   write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooo'
 endif
 
 
