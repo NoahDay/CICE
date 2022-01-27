@@ -121,9 +121,11 @@
 
 ! Noah Day WIM, ----------------------------------------------------------------
 if (WIM.eq.1) then
-    nmth=mmonth
-    !write(nu_diag,*) ' Todays date is: '
-    !write(nu_diag,*) 'nmth: ', nmth
+  ! Initialise the indexes for WW3 reading.
+  nww3 = 24*(mday-1)
+  nmth = mmonth
+    !write(nu_diag,*) ' Starting date is: '
+    !write(nu_diag,*) 'mmonth: ', mmonth
     !write(nu_diag,*) 'mday: ', mday
     !write(nu_diag,*) 'myear: ', myear
     !write(nu_diag,*) 'idate: ', idate
@@ -147,9 +149,11 @@ endif ! WIM
 ! Noah Day WIM, ----------------------------------------------------------------
         !!!!! LUKE'S WAVE STUFF !!!!!
 if (WIM.eq.1) then
-        nww3=nww3+nww3_dt
+  ! Update the dates.
+
+        nww3= nww3+nww3_dt
         if (WAVE_METH.eq.1) then
-           write(nu_diag,*) 'LB: istep,nww3,N_tm=', istep, nww3, N_tm
+           !write(nu_diag,*) 'LB: istep,nww3,N_tm,nmth=', istep, nww3, N_tm, nmth
            if (nww3.le.N_tm) then
                ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
                ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
@@ -171,6 +175,11 @@ if (WIM.eq.1) then
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
 
         !nww3=1-nww3_dt
+        if (nmth.ne.mmonth) then
+          nww3 = 24*(mday-1) ! if month changes reset to 1
+          nmth = mmonth
+          !write(nu_diag,*) 'LB changed: istep,nww3,N_tm,nmth=', istep, nww3, N_tm, nmth
+        endif
 
 endif ! WIM
 
