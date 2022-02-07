@@ -130,7 +130,7 @@ if (WIM.eq.1) then
     !write(nu_diag,*) 'myear: ', myear
     !write(nu_diag,*) 'idate: ', idate
     if (WAVE_METH.eq.1) then
-       call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
+       call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,myear)
        allocate(ww3_swh(N_lon,N_lat))
        allocate(ww3_fp(N_lon,N_lat))
        allocate(ww3_dir(N_lon,N_lat))
@@ -258,8 +258,6 @@ if (WIM.eq.1) then
 ! !DESCRIPTION:
 !
 ! reads Elodie's WW3 data from netcdf file
-! Noah Day WIM, originally this would be in CICE_RunMod (CICE4) but I've added
-! it to icepack_floe to make it clear what comes from WIM and what is from standard CICE6
 !
 ! !REVISION HISTORY:
 !
@@ -267,7 +265,7 @@ if (WIM.eq.1) then
 !
 ! !INTERFACE:
 !
-      subroutine sub_WW3_dataread (mth,N_tm,N_lat,N_lon)
+      subroutine sub_WW3_dataread (mth,N_tm,N_lat,N_lon,myr)
 !
 ! !USES:
 use ice_read_write, only: ice_open, ice_read, &
@@ -278,7 +276,7 @@ use ice_forcing, only: check
 ! !INPUT/OUTPUT PARAMETERS:
 !
       integer (kind=int_kind), intent(in) :: &
-         mth ! month 1-12
+         mth, myr ! month 1-12
 
       integer (kind=int_kind), intent(out) :: &
          N_tm, N_lat, N_lon
@@ -290,39 +288,73 @@ use ice_forcing, only: check
     character (char_len_long) :: &        ! input data file names
         ww3_file, &
         varname
+    character (4) :: &
+        year_char
 
         integer (kind=int_kind) :: &
            fid              ! file id for netCDF file
 
 if (WIM.eq.1) then
+  ! Noah Day, Find what year we are in
+    if (myr.eq.2005) then
+      year_char = '2005'
+    elseif (myr.eq.2006) then
+      year_char = '2006'
+    elseif (myr.eq.2007) then
+      year_char = '2007'
+    elseif (myr.eq.2008) then
+      year_char = '2008'
+    elseif (myr.eq.2009) then
+      year_char = '2009'
+    elseif (myr.eq.2010) then
+      year_char = '2010'
+    elseif (myr.eq.2011) then
+      year_char = '2011'
+    elseif (myr.eq.2012) then
+      year_char = '2012'
+    elseif (myr.eq.2013) then
+      year_char = '2013'
+    elseif (myr.eq.2014) then
+      year_char = '2014'
+    elseif (myr.eq.2015) then
+      year_char = '2015'
+    elseif (myr.eq.2016) then
+      year_char = '2016'
+    elseif (myr.eq.2017) then
+      year_char = '2017'
+    elseif (myr.eq.2018) then
+      year_char = '2018'
+    elseif (myr.eq.2019) then
+      year_char = '2019'
+    endif
+
     if (WAVE_METH.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
         if (mth.eq.1) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '01.nc', NF90_NOWRITE, ncid) )
+          write(nu_diag,*) 'wave directory is: ', trim(waveicedatadir) // '/' //  trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) // '01.nc'
+         call check( nf90_open(trim(waveicedatadir) // '/' //  trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) // '01.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.2) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '02.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'02.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.3) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '03.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'03.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.4) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '04.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'04.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.5) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '05.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'05.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.6) then
-          !write(nu_diag,*) trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc'
-         !call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'06.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.7) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '07.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'07.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.8) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '08.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'08.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.9) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '09.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'09.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.10) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '10.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'10.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.11) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '11.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'11.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.12) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '12.nc', NF90_NOWRITE, ncid) )
+         call check( nf90_open(trim(waveicedatadir) //'/'// trim(year_char) //'/' // trim(fname_ww3) // '_' // trim(year_char) //'12.nc', NF90_NOWRITE, ncid) )
         endif
         write(nu_diag,*) '1st check done'
         varname = 'TLAT'

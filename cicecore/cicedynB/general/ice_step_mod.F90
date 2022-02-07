@@ -842,20 +842,26 @@
             !do ii = ilo, ihi
             !    write(nu_diag,*) ' SWH.....', swh(ii,wavemask_dyn_vec(ii),iblk)
             !end do
-
+          if (OVERWRITE_DIRS.eq.1) then
+               !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
+             do i=1,nx_block
+               mwd(i,wavemask_dyn_vec(i),iblk) = pi
+             enddo
+          endif	! IF OVERWRITE_DIRS
 
       else ! Run blockwise
         write(nu_diag,*) ' Blockwise WIM.....'
           call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
                	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
+          if (OVERWRITE_DIRS.eq.1) then
+               !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
+             do i=1,nx_block
+               mwd(i,wavemask_dyn,iblk) = pi
+             enddo
+          endif	! IF OVERWRITE_DIRS
       endif ! WIM_LONG
 
-      if (OVERWRITE_DIRS.eq.1) then
-           !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
-         do i=1,nx_block
-           mwd(i,wavemask_dyn,iblk) = pi
-         enddo
-      endif	! IF OVERWRITE_DIRS
+
         !print*, 'passed overwriting directions: mwd(1,wavemask_dyn,iblk)=', mwd(1,wavemask_dyn,iblk)
        else
         call init_wave_spec_usr(wavemask_dyn)

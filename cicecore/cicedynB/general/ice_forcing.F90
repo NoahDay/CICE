@@ -5952,8 +5952,10 @@ call ice_HaloUpdate (mwd,             halo_info, &
         if (dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny) then
            swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i))
            ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i))
-           if (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.lt.3*pi/2) then
+           if (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
              mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
+           elseif (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
+             mwd(i,dum_wavemask_vec(i),j) = pi
            else
              mwd(i,dum_wavemask_vec(i),j) = c0
            end if
@@ -5962,8 +5964,10 @@ call ice_HaloUpdate (mwd,             halo_info, &
       if (dum_swh(lp+ind_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon,dum_wavemask_vec(i)).gt.puny) then
          swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon,dum_wavemask_vec(i))
          ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon,dum_wavemask_vec(i))
-         if (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.lt.4*pi/3) then
-           mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180
+         if (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
+           mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
+         elseif (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
+           mwd(i,dum_wavemask_vec(i),j) = pi
          else
            mwd(i,dum_wavemask_vec(i),j) = c0
          end if

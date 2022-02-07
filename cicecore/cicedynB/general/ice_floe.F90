@@ -379,14 +379,14 @@ end subroutine init_floe_0
 
           ! A1. Use WIM to update wave spectrum and floe sizes
 
-          if (cmt.ne.0) then
+          ! ND 7/2 if (cmt.ne.0) then
            write(nu_diag,*) '>>>--------------------------------------------->>>'
            write(nu_diag,*) '        INPUT         -> i,j   =', i, j
  		       write(nu_diag,*) '                      -> ifloe =', ifloe(i,j)
            write(nu_diag,*) '                      -> swh   =', loc_swh(i,j)
            write(nu_diag,*) '                      -> ppd   =', loc_ppd(i,j)
            write(nu_diag,*) '                      -> mwd   =', 180d0*mwd_row(i)/pi
-    	     endif
+    	     ! ND 7/2 endif
     	if (do_coupled.ne.0) then
     	      call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
  		  nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
