@@ -154,7 +154,7 @@ if (WIM.eq.1) then
 
         nww3= nww3+nww3_dt
         if (WAVE_METH.eq.1) then
-           write(nu_diag,*) 'LB: isteep,nww3,N_tm,nmth, mday=', istep, nww3, N_tm, nmth, mday
+           !write(nu_diag,*) 'LB: isteep,nww3,N_tm,nmth, mday=', istep, nww3, N_tm, nmth, mday
            if (nww3.le.N_tm) then
                ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
                ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
@@ -333,6 +333,7 @@ if (WIM.eq.1) then
     endif
     if (WAVE_METH.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
+       write(nu_diag,*) '    sub_WW3_dataread year:', yr
         if (mth.eq.1) then
          call check( nf90_open(trim(waveicedatadir) // trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.2) then
