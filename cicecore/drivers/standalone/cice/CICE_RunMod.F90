@@ -335,7 +335,9 @@ if (WIM.eq.1) then
        write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
        write(nu_diag,*) '    sub_WW3_dataread year:', yr
         if (mth.eq.1) then
-         call check( nf90_open(trim(waveicedatadir) // trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
+        call check( nf90_open(trim('/Users/noahday/GitHub/cice-dirs/input/CICE_data/forcing/gx1/CAWCR/MONTHLY/2005/ww3_200501.nc'), NF90_NOWRITE, ncid))
+        write(nu_diag,*) ' read in file'
+        ! call check( nf90_open(trim(waveicedatadir) //'/'//  trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.2) then
          call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '02.nc', NF90_NOWRITE, ncid) )
         elseif (mth.eq.3) then

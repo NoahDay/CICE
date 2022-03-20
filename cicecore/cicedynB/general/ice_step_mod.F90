@@ -596,6 +596,9 @@
       ! Noah Day WIM------------------------------------------------------------
       real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff, wave_spectrum_in, wave_spectrum_out ! attenuation coefficient
       real(kind=dbl_kind) :: hice_init, Length_cell, aice_in!conc_coeff, Dav, Lcell, m0, m2, ice_thick
+      real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka ! work for calculating mean FSD
+
+
       real(kind=dbl_kind), dimension(nfreq)           :: om ! freqs
       real(kind=dbl_kind)                  :: fmin, fmax
                                                   ! freq min/max
@@ -706,23 +709,23 @@
       ! Save the initial ice area and volume in each category.
       !-----------------------------------------------------------------
 
-! THIS BREAKS icepack_step_therm2 !!!!!!!!!!!!!!!!!!!!!!!!
-! ice thickness boundaries stop being strictly increasing
-      !do j = 1, ny_block
-      !do i = 1, nx_block
-      !  aice_init (i,j,  iblk) = aice (i,j,  iblk)
-      !enddo
-      !enddo
+      ! Noah Day - THIS BREAKS icepack_step_therm2 !!!!!!!!!!!!!!!!!!!!!!!!
+      ! ice thickness boundaries stop being strictly increasing
+            !do j = 1, ny_block
+            !do i = 1, nx_block
+            !  aice_init (i,j,  iblk) = aice (i,j,  iblk)
+            !enddo
+            !enddo
 
-      !do n = 1, ncat
-      !do j = 1, ny_block
-      !do i = 1, nx_block
-    !           aicen_init(i,j,:,iblk) = aicen(i,j,:,iblk)
-    !           vicen_init(i,j,:,iblk) = vicen(i,j,:,iblk)
-      !enddo
-      !enddo
-      !enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !do n = 1, ncat
+            !do j = 1, ny_block
+            !do i = 1, nx_block
+          !           aicen_init(i,j,:,iblk) = aicen(i,j,:,iblk)
+          !           vicen_init(i,j,:,iblk) = vicen(i,j,:,iblk)
+            !enddo
+            !enddo
+            !enddo
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
       !-----------------------------------------------------------------
@@ -876,7 +879,34 @@
           call init_floe_0
         else             ! initialise ifd using ifloe tracer values
          if (cmt.ne.0) write(nu_diag,*) '                -> Remembering floe sizes'
-         ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
+         ! Noah Day ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
+         ! Noah Day 20/3/22 START ---------------------------------------
+         do i = 1,nx_block
+           do j = 1,ny_block
+             if (aice(i,j,iblk).gt.puny) then
+              write(nu_diag,*) 'For cell i,j:',i,j
+              write(nu_diag,*) 'trcrn(:,:,nt_fsd,1,iblk)', trcrn(i,j,nt_fsd,1,iblk)
+
+              worka(i,j) = c0
+              ! Calculate the representative radius (Roach et al. 2018)
+              do k = 1, 16 ! Fix this
+                 do n = 1, 5 ! fix this
+                   worka(i,j) = worka(i,j) &
+                                + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
+                                * aicen(i,j,n,iblk)/aice(i,j,iblk))
+                  end do
+               end do
+               write(nu_diag,*) 'worka(i,j)', worka(i,j)
+               ! Feed in the diameter to WIM (Bennetts et al. 2017)
+               ifd(i,j,iblk) = c2*worka(i,j)
+             else
+               ifd(i,j,iblk) = c0
+            end if
+            end do
+          end do
+                   !ifd(:,:,iblk) = trcrn(i,j,nt_fsd+k-1,n,iblk)
+         ! Noah Day 20/3/22 END ---------------------------------------
+
        endif ! date
 
        ! overall volume & overall concentration (wrt thickness categories)

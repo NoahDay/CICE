@@ -135,12 +135,12 @@ subroutine init_floe
 !EOP
 !
   integer (kind=int_kind)            :: i, j
-
-trcrn(:,:,nt_fsd,:,:) = c0
+! This is broken - Noah day 20/3/22
+!trcrn(:,:,nt_fsd,:,:) = c0
 ifd(:,:,:) = c0
 do j = 1, ny_block
   do i = 1, nx_block
-    trcrn(:,:,nt_fsd,1,:) = c300 ! Noah Day WIM, instead of :,: at the end
+    !trcrn(:,:,nt_fsd,1,:) = c300 ! Noah Day WIM, instead of :,: at the end
     ifd(i,j,:)            = c300
   enddo
 enddo
@@ -379,14 +379,14 @@ end subroutine init_floe_0
 
           ! A1. Use WIM to update wave spectrum and floe sizes
 
-          ! ND 7/2 if (cmt.ne.0) then
+        if (cmt.ne.0) then
            write(nu_diag,*) '>>>--------------------------------------------->>>'
            write(nu_diag,*) '        INPUT         -> i,j   =', i, j
  		       write(nu_diag,*) '                      -> ifloe =', ifloe(i,j)
            write(nu_diag,*) '                      -> swh   =', loc_swh(i,j)
            write(nu_diag,*) '                      -> ppd   =', loc_ppd(i,j)
            write(nu_diag,*) '                      -> mwd   =', 180d0*mwd_row(i)/pi
-    	     ! ND 7/2 endif
+    	   endif
     	if (do_coupled.ne.0) then
     	      call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
  		  nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
@@ -394,7 +394,7 @@ end subroutine init_floe_0
  		   call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
  		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
  		 endif
- 		 ifloe(i,j) = D1
+ 		! Noah Day 20/3/21 ifloe(i,j) = D1
  		endif ! ENDIF ws_tol
         else
          if (cmt.ne.0) then
@@ -868,8 +868,11 @@ end subroutine init_floe_0
   !     ! ice floe size param, significant wave height, wave peak period
         real (kind=dbl_kind), dimension(nx_block,ny_block), &
            intent(inout) :: &
-            loc_swh, loc_ppd, loc_mwd, ifloe
-
+            loc_swh, loc_ppd, loc_mwd
+! Noah Day moving ifloe from inout to just in
+      real (kind=dbl_kind), dimension(nx_block,ny_block), &
+         intent(in) :: &
+          ifloe
   !     ! land/boundary mask, thickness (T-cell)
         logical (kind=log_kind), dimension (nx_block,ny_block), &
             intent(in) :: &
@@ -1034,7 +1037,8 @@ end subroutine init_floe_0
                  if (afice(i,j).lt.tolice) then
                   !write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
                  endif
-                 !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
+                 write(nu_diag,*) ' For cell (i,j)', i,j
+                 write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
                endif ! END IF COMMENT
              endif  ! END IF h<tolh OR c<tolc
            else ! IF there are waves:
@@ -1340,7 +1344,7 @@ max_wavemask = dum_wavemask
                            nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
                        endif ! ENDIF (do_coupled.ne.0)
                        !print*, '... done wave-ice routine'
-                       ifloe(i,j) = D1
+                       ! Noah Day 20/3/22 ifloe(i,j) = D1
                         !print*, '... set ifloe(i,j)=', ifloe(i,j), 'D1=', D1
                      endif ! ENDIF ws_tol
                    else ! tmask
