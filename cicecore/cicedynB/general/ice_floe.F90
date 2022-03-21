@@ -872,7 +872,7 @@ end subroutine init_floe_0
 ! Noah Day moving ifloe from inout to just in
       real (kind=dbl_kind), dimension(nx_block,ny_block), &
          intent(in) :: &
-          ifloe
+          ifloe ! ice floe size param
   !     ! land/boundary mask, thickness (T-cell)
         logical (kind=log_kind), dimension (nx_block,ny_block), &
             intent(in) :: &

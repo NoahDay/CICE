@@ -879,28 +879,30 @@
           call init_floe_0
         else             ! initialise ifd using ifloe tracer values
          if (cmt.ne.0) write(nu_diag,*) '                -> Remembering floe sizes'
+
          ! Noah Day ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
          ! Noah Day 20/3/22 START ---------------------------------------
          do i = 1,nx_block
            do j = 1,ny_block
              if (aice(i,j,iblk).gt.puny) then
               write(nu_diag,*) 'For cell i,j:',i,j
-              write(nu_diag,*) 'trcrn(:,:,nt_fsd,1,iblk)', trcrn(i,j,nt_fsd,1,iblk)
+              write(nu_diag,*) 'trcrn(:,:,nt_fsd,1,iblk):', trcrn(i,j,nt_fsd,1,iblk)
 
-              worka(i,j) = c0
+
               ! Calculate the representative radius (Roach et al. 2018)
-              do k = 1, 16 ! Fix this
-                 do n = 1, 5 ! fix this
+              worka(i,j) = c0
+              do k = 1, nfsd
+                 do n = 1, ncat
                    worka(i,j) = worka(i,j) &
                                 + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
                                 * aicen(i,j,n,iblk)/aice(i,j,iblk))
                   end do
                end do
-               write(nu_diag,*) 'worka(i,j)', worka(i,j)
-               ! Feed in the diameter to WIM (Bennetts et al. 2017)
+               write(nu_diag,*) 'worka(i,j):', worka(i,j)
+               ! Feed in the 'representative' diameter to WIM (Bennetts et al. 2017)
                ifd(i,j,iblk) = c2*worka(i,j)
              else
-               ifd(i,j,iblk) = c0
+               ifd(i,j,iblk) = c0 ! c0 or floe_sz_min?
             end if
             end do
           end do
