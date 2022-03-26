@@ -611,17 +611,7 @@
       real (kind=dbl_kind), dimension(1) :: &
          temp_loc
 
-      ! concentration coefficient, average floe size, length of cell, zeroth moment, second moment
-      ! ice thickness
-      !real(kind=dbl_kind) :: kappa, fr, mass, Es, om_crit
 
-      !real(kind=dbl_kind), dimension (nfreq) :: &
-      !   t_period,      &  ! wave period
-      !    lambda_wtr_in, &  ! wave length
-      !    k_wtr_in,      &  ! wave number
-      !   k_ice,         &
-      !   lam_ice,       &
-      !   fn_DispRel_ice_inf
       integer (kind=int_kind) :: ii, jj, kk, n, k ! index
       integer :: lp_i, lp_j ! counter
       integer (kind=int_kind) :: nthh, tmtt, idll
@@ -709,316 +699,199 @@
       ! Save the initial ice area and volume in each category.
       !-----------------------------------------------------------------
 
-      ! Noah Day - THIS BREAKS icepack_step_therm2 !!!!!!!!!!!!!!!!!!!!!!!!
-      ! ice thickness boundaries stop being strictly increasing
-            !do j = 1, ny_block
-            !do i = 1, nx_block
-            !  aice_init (i,j,  iblk) = aice (i,j,  iblk)
-            !enddo
-            !enddo
-
-            !do n = 1, ncat
-            !do j = 1, ny_block
-            !do i = 1, nx_block
-          !           aicen_init(i,j,:,iblk) = aicen(i,j,:,iblk)
-          !           vicen_init(i,j,:,iblk) = vicen(i,j,:,iblk)
-            !enddo
-            !enddo
-            !enddo
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
       !-----------------------------------------------------------------
       ! MIZ FLOE SIZE DISTRIBUTION: BASED ON OCEAN WAVES - Noah Day WIM
       !-----------------------------------------------------------------
 
-       ! find cells with aice <= puny
-       icells = 0
-       wavemask_dyn = 0
-       do jj = jlo, jhi
-        do ii = ilo, ihi
-         if (aice(ii,jj,iblk).gt.puny) then
-          icells = icells + 1
-          indxi(icells) = ii
-          indxj(icells) = jj
-          if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
-           wavemask_dyn = jj
-          endif
-         endif
-       enddo               ! ii
-     enddo                ! jj
-
-
-
-! Noah Day recording the wave mask for all blocks
-     ! find cells with aice <= puny
-!    icells = 0
-!    wavemask_dyn = 0
-!    i = 1
-!    do kk = 1, 10
-!      this_block = get_block(blocks_ice(kk),kk)
-!      ilo = this_block%ilo
-!      ihi = this_block%ihi
-!      jlo = this_block%jlo
-!      jhi = this_block%jhi
-!      do jj = jlo, jhi
-!        do ii = ilo, ihi
-!           if (aice(ii,jj,kk).gt.puny) then
-!            icells = icells + 1
-!            indxi(icells) = ii
-!            indxj(icells) = jj
-!            if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
-!             wavemask_dyn_vec(i) = jj
-!             i = i + 1
-!            endif
-!           endif
-!         enddo               ! ii
-    !   enddo                ! jj
-     !enddo                 ! kk
-!if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
-!  wavemask_dyn_vec(iblk) = wavemask_dyn
-!endif
-
-
-  if (cmt.ne.0) then
-      write(nu_diag,*) 'indxi: ', ii
-      write(nu_diag,*) ' indxj: ', jj
-      write(nu_diag,*) 'wave mask is: ', wavemask_dyn
-
-  end if !cmt
-
-    if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON
-
-    if (cmt.ne.0) then
-        write(nu_diag,*) '----------------------------------------------------'
-        write(nu_diag,*) '----------------------------------------------------'
-        write(nu_diag,*) '----------------------------------------------------'
-        write(nu_diag,*) 'LB: CICE_RunMod -> Running wave-ice interaction code:', &
-         ' istep=', istep !, 'dt=', dt
-     endif ! cmt
-
-     mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
-
-
-     if (cmt.ne.0) write(nu_diag,*) ' mean latitude: ', mn_lat, mn_lat*c180/pi
-
-     if (WAVE_METH.eq.1) then
-
-       ! Finding the lateral degree where to propagate from
-       dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
-       if (cmt.ne.0) write(nu_diag,*)'     dumlatloc: ', dumlatloc
-
-
-
-       if (WIM_LONG.eq.1) then
-         !write(nu_diag,*) ' Longitudinal WIM Starting.....'
-           ! Calculate the wavemask for each longitude
-           wavemask_dyn_vec(:) = 0
-           do jj = jlo, jhi
-            do ii = ilo, ihi
-              if (aice(ii,jj,iblk).gt.puny) then
-               icells = icells + 1
-               indxi(icells) = ii
-               indxj(icells) = jj
-               if ((jj.lt.150).and.(jj.gt.-1)) then
-                wavemask_dyn_vec(ii) = jj
-               endif
-              endif
-            end do
-          end do
-        !  write(nu_diag,*) 'fixing dum_wavemask edges'
-        wavemask_dyn_vec(1) = wavemask_dyn_vec(2)
-        wavemask_dyn_vec(nx_block) = wavemask_dyn_vec(nx_block-1)
-        !write(nu_diag,*) 'done.'
-        !  write(nu_diag,*) ' wavemask_dyn_vec(i) = jj',  wavemask_dyn_vec
-          dumlatloc_vec(:) = 0
-
+         ! find cells with aice <= puny
+         icells = 0
+         wavemask_dyn = 0
+         do jj = jlo, jhi
           do ii = ilo, ihi
-              temp_loc = minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
-              dumlatloc_vec(ii) = temp_loc(1)
-              !write(nu_diag,*)'     dumlatloc: ', minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
-          end do
+             if (aice(ii,jj,iblk).gt.puny) then
+                icells = icells + 1
+                indxi(icells) = ii
+                indxj(icells) = jj
+                if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
+                 wavemask_dyn = jj
+                endif
+             endif
+           enddo               ! ii
+         enddo                ! jj
 
-          call init_wave_spec_long(wavemask_dyn_vec,ww3_swh(:,:), &
-                ww3_fp(:,:),ww3_dir(:,:),size(ww3_lon),size(ww3_lat),iblk)
+         if (cmt.ne.0) then
+            write(nu_diag,*) 'indxi: ', ii
+            write(nu_diag,*) ' indxj: ', jj
+            write(nu_diag,*) 'wave mask is: ', wavemask_dyn
+         end if !cmt
 
-            !do ii = ilo, ihi
-            !    write(nu_diag,*) ' SWH.....', swh(ii,wavemask_dyn_vec(ii),iblk)
-            !end do
-          if (OVERWRITE_DIRS.eq.1) then
-               !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
-             do i=1,nx_block
-               mwd(i,wavemask_dyn_vec(i),iblk) = pi
-             enddo
-          endif	! IF OVERWRITE_DIRS
+         if (max_floediam.eq.300.0_dbl_kind) then !!! Wave-ice interaction code ON - Noah Day commenting out 26/03/22
 
-      else ! Run blockwise
-        write(nu_diag,*) ' Blockwise WIM.....'
-          call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
-               	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
-          if (OVERWRITE_DIRS.eq.1) then
-               !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
-             do i=1,nx_block
-               mwd(i,wavemask_dyn,iblk) = pi
-             enddo
-          endif	! IF OVERWRITE_DIRS
-      endif ! WIM_LONG
+            if (cmt.ne.0) then
+                write(nu_diag,*) '----------------------------------------------------'
+                write(nu_diag,*) '----------------------------------------------------'
+                write(nu_diag,*) '----------------------------------------------------'
+                write(nu_diag,*) 'LB: CICE_RunMod -> Running wave-ice interaction code:', &
+                 ' istep=', istep !, 'dt=', dt
+            endif ! cmt
 
+             ! Calculate mean latitude
+             mn_lat = sum(TLAT(:,wavemask_dyn,1))/size(TLAT(:,wavemask_dyn,1))
+             if (cmt.ne.0) write(nu_diag,*) ' mean latitude: ', mn_lat, mn_lat*c180/pi
 
-        !print*, 'passed overwriting directions: mwd(1,wavemask_dyn,iblk)=', mwd(1,wavemask_dyn,iblk)
-       else
-        call init_wave_spec_usr(wavemask_dyn)
-        write(nu_diag,*) '         -> Calling init_wave_spec_usr'
-    endif ! WAVE_METH
+             if (WAVE_METH.eq.1) then
+                 ! Finding the lateral degree where to propagate from
+                 dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
+                 if (cmt.ne.0) write(nu_diag,*)'     dumlatloc: ', dumlatloc
 
-       if (1.eq.0) then ! reinitialise floe diameters (no memory)
-       !if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
-        !if (istep.eq.1) then
-        !if (cmt.ne.0)
-          write(nu_diag,*) '                -> Reinitialising floe sizes'
-          call init_floe_0
-        else             ! initialise ifd using ifloe tracer values
-         if (cmt.ne.0) write(nu_diag,*) '                -> Remembering floe sizes'
+                 if (WIM_LONG.eq.1) then
+                     !write(nu_diag,*) ' Longitudinal WIM Starting.....'
+                     ! Calculate the wavemask for each longitude
+                      wavemask_dyn_vec(:) = 0
+                      do jj = jlo, jhi
+                        do ii = ilo, ihi
+                          if (aice(ii,jj,iblk).gt.puny) then
+                           icells = icells + 1
+                           indxi(icells) = ii
+                           indxj(icells) = jj
+                           if ((jj.lt.150).and.(jj.gt.-1)) then
+                            wavemask_dyn_vec(ii) = jj
+                           endif
+                          endif
+                        end do
+                      end do
 
-         ! Noah Day ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
-         ! Noah Day 20/3/22 START ---------------------------------------
-         do i = 1,nx_block
-           do j = 1,ny_block
-             if (aice(i,j,iblk).gt.puny) then
-              write(nu_diag,*) 'For cell i,j:',i,j
-              write(nu_diag,*) 'trcrn(:,:,nt_fsd,1,iblk):', trcrn(i,j,nt_fsd,1,iblk)
+                      wavemask_dyn_vec(1) = wavemask_dyn_vec(2)
+                      wavemask_dyn_vec(nx_block) = wavemask_dyn_vec(nx_block-1)
+                      ! Initialise the dummy latitude location vector
+                      dumlatloc_vec(:) = 0
 
+                      do ii = ilo, ihi
+                          temp_loc = minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
+                          dumlatloc_vec(ii) = temp_loc(1)
+                          !write(nu_diag,*)'     dumlatloc: ', minloc(abs(ww3_lat-c180*mn_lat_vec(ii)/pi),dim=2)
+                      end do
 
-              ! Calculate the representative radius (Roach et al. 2018)
-              worka(i,j) = c0
-              do k = 1, nfsd
-                 do n = 1, ncat
-                   worka(i,j) = worka(i,j) &
-                                + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
-                                * aicen(i,j,n,iblk)/aice(i,j,iblk))
+                      ! Initialise wave spectrum per longitude (equivalent to cell for 1 degree grid)
+                      call init_wave_spec_long(wavemask_dyn_vec,ww3_swh(:,:), &
+                            ww3_fp(:,:),ww3_dir(:,:),size(ww3_lon),size(ww3_lat),iblk)
+
+                      if (OVERWRITE_DIRS.eq.1) then ! Force waves to the south
+                           !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
+                           do i=1,nx_block
+                             mwd(i,wavemask_dyn_vec(i),iblk) = pi
+                           enddo
+                       endif	! IF OVERWRITE_DIRS
+
+                   else ! WIM_LONG: Run blockwise
+                        !write(nu_diag,*) ' Blockwise WIM.....'
+                        ! Initialise wave spectrum
+                        call init_wave_spec(wavemask_dyn,ww3_swh(:,dumlatloc(1)), &
+                             	ww3_fp(:,dumlatloc(1)),ww3_dir(:,dumlatloc(1)),size(ww3_lon),iblk)
+                        if (OVERWRITE_DIRS.eq.1) then ! Force waves to the south
+                             !print*, 'OVERWRITING directions: wavemask_dyn=', wavemask_dyn
+                           do i=1,nx_block
+                             mwd(i,wavemask_dyn,iblk) = pi
+                           enddo
+                        endif	! IF OVERWRITE_DIRS
+                    endif ! WIM_LONG
+                 !print*, 'passed overwriting directions: mwd(1,wavemask_dyn,iblk)=', mwd(1,wavemask_dyn,iblk)
+             else ! WAVE_METH
+                  call init_wave_spec_usr(wavemask_dyn)
+                  write(nu_diag,*) '         -> Calling init_wave_spec_usr'
+             endif ! WAVE_METH
+
+             if (1.eq.0) then ! reinitialise floe diameters (no memory)
+                !if (idate.eq.idate0) then!.and.timesecs.eq.sec_init) then
+                !if (istep.eq.1) then
+                if (cmt.ne.0) write(nu_diag,*) '                -> Reinitialising floe sizes'
+                  call init_floe_0
+             else             ! initialise ifd using ifloe tracer values
+               if (cmt.ne.0) write(nu_diag,*) '                -> Remembering floe sizes'
+               ! Noah Day ifd(:,:,iblk) = trcrn(:,:,nt_fsd,1,iblk)
+               ! Noah Day 20/3/22 START ---------------------------------------
+               do i = 1,nx_block
+                 do j = 1,ny_block
+                   if (aice(i,j,iblk).gt.puny) then
+                        !write(nu_diag,*) 'For cell i,j:',i,j
+                        !write(nu_diag,*) 'trcrn(:,:,nt_fsd,1,iblk)', trcrn(i,j,nt_fsd,1,iblk)
+                        worka(i,j) = c0
+                        ! Calculate the representative radius (Roach et al. 2018)
+                        do k = 1, nfsd
+                           do n = 1, ncat
+                             worka(i,j) = worka(i,j) &
+                                          + (trcrn(i,j,nt_fsd+k-1,n,iblk) * floe_rad_c(k) &
+                                          * aicen(i,j,n,iblk)/aice(i,j,iblk))
+                            end do
+                         end do
+
+                         ! Feed in the diameter to WIM (Bennetts et al. 2017)
+                         ifd(i,j,iblk) = c2*worka(i,j)
+                   else ! Otherwise there is no ice
+                     ifd(i,j,iblk) = c0
+                   end if
                   end do
-               end do
-               write(nu_diag,*) 'worka(i,j):', worka(i,j)
-               ! Feed in the 'representative' diameter to WIM (Bennetts et al. 2017)
-               ifd(i,j,iblk) = c2*worka(i,j)
-             else
-               ifd(i,j,iblk) = c0 ! c0 or floe_sz_min?
-            end if
-            end do
-          end do
-                   !ifd(:,:,iblk) = trcrn(i,j,nt_fsd+k-1,n,iblk)
-         ! Noah Day 20/3/22 END ---------------------------------------
+                end do
+                ! Noah Day 20/3/22 END ---------------------------------------
+             endif ! date
 
-       endif ! date
+             ! Initialise overall volume & overall concentration (wrt thickness categories)
+             do j = 1, ny_block
+              do i = 1, nx_block
+                ov_conc(i,j)  = c0
+                ov_vol(i,j)   = c0
+              enddo
+             enddo
 
-       ! overall volume & overall concentration (wrt thickness categories)
-       do j = 1, ny_block
-        do i = 1, nx_block
-        ov_conc(i,j)  = c0
-          ov_vol(i,j)   = c0
-        enddo
-       enddo
+             do j = wavemask,2,-1
+                do i = 1, nx_block
+                   if (tmask(i,j,iblk)) then
+                      do n = 1, ncat
+                        ov_conc(i,j)  = ov_conc(i,j)  + aicen(i,j,n,iblk)
+                        ov_vol(i,j)   = ov_vol(i,j)   + vicen(i,j,n,iblk)
+                      enddo
+                   endif
+                enddo
+             enddo
 
-       do j = wavemask,2,-1
-        do i = 1, nx_block
-         if (tmask(i,j,iblk)) then
-          do n = 1, ncat
-            ov_conc(i,j)  = ov_conc(i,j)  + aicen(i,j,n,iblk)
-            ov_vol(i,j)   = ov_vol(i,j)   + vicen(i,j,n,iblk)
-          enddo
-         endif
-        enddo
-      enddo
-!swh(:,:,iblk) = c3
-!ppd(:,:,iblk) = c10
-!mwd(:,:,iblk) = pi
-!write(nu_diag,*) 'LB: CICE_RunMod > Control test -> the sig wave height is ', &
-!   maxval(swh(:,:,iblk),1)
-!write(nu_diag,*) 'swh before increment_floe:', swh(:,wavemask_dyn,1)
-!mwd(:,:,iblk) = pi
-      if (WIM_LONG.eq.1) then
-        !write(nu_diag,*) 'Calling increment_floe_long..............'
-        call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
-                                dt,              & ! dt
-                                tmask(:,:,iblk), & ! tmask
-                                HTE(:,:,iblk),   & ! Lcell
-                                swh(:,:,iblk),   & ! loc_swh
-                                ppd(:,:,iblk),   & ! loc_ppd
-                                mwd(:,:,iblk),   & ! loc_mwd
-                                ifd(:,:,iblk),   & ! ifloe
-                               ov_conc, ov_vol, & ! afice, vfice
-                                wavemask_dyn,   & ! dum_wavemask
-                                wavemask_dyn_vec,   & ! dum_wavemask
-                                wave_spectrum(:,:,:,iblk)) ! wave spectrum
-      else
-       call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
-                               dt,              & ! dt
-                               tmask(:,:,iblk), & ! tmask
-                               HTE(:,:,iblk),   & ! Lcell
-                               swh(:,:,iblk),   & ! loc_swh
-                               ppd(:,:,iblk),   & ! loc_ppd
-                               mwd(:,:,iblk),   & ! loc_mwd
-                               ifd(:,:,iblk),   & ! ifloe
-                              ov_conc, ov_vol, & ! afice, vfice
-                               wavemask_dyn,   & ! dum_wavemask
-                               wave_spectrum(:,:,:,iblk)) ! wave spectrum
-                               !write(nu_diag,*) ' Called increment floe'
-     endif ! WIM_LONG
-  !if (cmt.ne.0)
-  !!write(nu_diag,*)'     wave_spectrum after increment_floe: ', wave_spectrum(i,wavemask_dyn,:,iblk)
+             if (WIM_LONG.eq.1) then ! Propagate waves per cell
+                !write(nu_diag,*) 'Calling increment_floe_long..............'
+                call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
+                                        dt,              & ! dt
+                                        tmask(:,:,iblk), & ! tmask
+                                        HTE(:,:,iblk),   & ! Lcell
+                                        swh(:,:,iblk),   & ! loc_swh
+                                        ppd(:,:,iblk),   & ! loc_ppd
+                                        mwd(:,:,iblk),   & ! loc_mwd
+                                        ifd(:,:,iblk),   & ! ifloe
+                                       ov_conc, ov_vol, & ! afice, vfice
+                                        wavemask_dyn,   & ! dum_wavemask
+                                        wavemask_dyn_vec,   & ! dum_wavemask
+                                        wave_spectrum(:,:,:,iblk)) ! wave spectrum
+             else ! Propagate waves on a block wise basis
+               call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
+                                       dt,              & ! dt
+                                       tmask(:,:,iblk), & ! tmask
+                                       HTE(:,:,iblk),   & ! Lcell
+                                       swh(:,:,iblk),   & ! loc_swh
+                                       ppd(:,:,iblk),   & ! loc_ppd
+                                       mwd(:,:,iblk),   & ! loc_mwd
+                                       ifd(:,:,iblk),   & ! ifloe
+                                      ov_conc, ov_vol, & ! afice, vfice
+                                       wavemask_dyn,   & ! dum_wavemask
+                                       wave_spectrum(:,:,:,iblk)) ! wave spectrum
+                                       !write(nu_diag,*) ' Called increment floe'
+             endif ! WIM_LONG
+         else !!! Wave-ice interaction code OFF
 
-    else !!! Wave-ice interaction code OFF
+             write(nu_diag,*) '----------------------------------------------------'
+             write(nu_diag,*) '----------------------------------------------------'
+             write(nu_diag,*) '----------------------------------------------------'
+             write(nu_diag,*) 'LB: CICE_RunMod > Control test -> setting floe diameters = ', &
+                max_floediam !c300
+         endif          ! ENDIF c300
 
-       write(nu_diag,*) '----------------------------------------------------'
-       write(nu_diag,*) '----------------------------------------------------'
-       write(nu_diag,*) '----------------------------------------------------'
-       write(nu_diag,*) 'LB: CICE_RunMod > Control test -> setting floe diameters = ', &
-          max_floediam !c300
-
-      !Noah Day 25/10  do j = 1, ny_block
-      !Noah Day 25/10   do i = 1, nx_block
-          !Noah Day 25/10 ifd(i,j,iblk)    = max_floediam !c300
-          !trcrn(i,j,nt_ifloe,1,iblk)  = c300
-        !Noah Day 25/10 enddo
-      !Noah Day 25/10  enddo
-
-      endif          ! ENDIF c300
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!        END WAVE-ICE CODE       !!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-!noah day commenting out 15/9   ! set ifloe=0 in cells with aice<=puny
-  ! do j = jlo, jhi
-    !do i = ilo, ihi
-     !if (aice(i,j,iblk) .le. puny) then
-     !trcrn(i,j,nt_ifloe,1,iblk) = c0
-     !ifd(i,j,iblk)              = c0
-  !  endif
-  !  enddo 	! i
- !enddo  ! j
-
-   ! must set ifloe consistently across ncat
-  ! do n = 1, ncat
-  !  do j = 1, ny_block
-  !   do i = 1, nx_block
-      !Noah Day 25/10 trcrn(i,j,nt_fsd,n,iblk)  = ifd(i,j,iblk)  ! trcrn(i,j,nt_ifloe,1,iblk)
-  !   enddo
-  !  enddo
-  ! enddo
-
-   ! initialise floe diameters after breaking but before thermodynamics
-   !if (tr_fsd) then
-  !  do j = 1, ny_block
-  !   do i = 1, nx_block
-  !    floediam_init (i,j,  iblk) = trcrn(i,j,nt_fsd,1,iblk)
-  !   enddo
-  !  enddo
-  !endif
-
-
-
-
-    ! Noah Day WIM 25/10
+    ! Noah Day WIM 25/10/21
     ! Creating a wave spectrum in the icepack using the attenuated significant wave height and peak period
     fmin = 1d0/16d0
     fmax = 1d0/6d0
@@ -1026,7 +899,6 @@
     om2=2*pi*fmax
     om_0 = (om2 - om1)/(nfreq-1)
     ! Importing om values
-
     do lp_i=1,nfreq
         om(lp_i)        = om1 + (lp_i-1)*om_0
     end do
@@ -1038,20 +910,6 @@
 
     wavefreq(:) = om(:)
     dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
-
-    !do jj = jlo, jhi
-    !  do ii = ilo, ihi
-    !   do lp_i=1,nfreq
-    !      wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,wave_sig_ht(i,j,iblk),peak_period(i,j,iblk))
-    !    end do
-    !  end do
-    !end do
-
-
-    !write(nu_diag,*) 'om: ', om
-    !write(nu_diag,*) 'dwavefreq: ', dwavefreq
-    !write(nu_diag,*) 'SDF_Bretschneider: ', SDF_Bretschneider(om(1),0,c2,peak_period(73,18,1))
-    ! ------------------
 
   !-------------------------------------------------------------------------------
   ! TURNING OFF WAVES IN ICE MODULE
@@ -1065,67 +923,75 @@
 
         ! significant wave height for FSD
          if (tr_fsd) then
-           if (WIM.eq.0) then ! Noah Day WIM, if WIM is off: calculate SWH from dummy data
-               !wave_spectrum(i,j,:,iblk) = c0
-               ! set for 25 frequencies
-               nfreq = 25
-               wave_spectrum(i,j,:,iblk) = c0
+             if (WIM.eq.1) then ! Noah Day WIM, if WIM is off: calculate SWH from dummy data
+                 if (WAVE_METH.eq.0) then ! Use dummy data from CICE code
+                     ! set for 25 frequencies
+                     nfreq = 25
+                     wave_spectrum(i,j,:,iblk) = c0
 
-               ! FOR TESTING ONLY - do not use for actual runs!!
-               wave_spectrum(i,j,1,iblk) = 0.00015429197810590267
-               wave_spectrum(i,j,2,iblk) = 0.002913531381636858
-               wave_spectrum(i,j,3,iblk) = 0.02312942035496235
-               wave_spectrum(i,j,4,iblk) = 0.07201970368623734
-               wave_spectrum(i,j,5,iblk) = 0.06766948103904724
-               wave_spectrum(i,j,6,iblk) = 0.005527883302420378
-               wave_spectrum(i,j,7,iblk) = 3.326293881400488e-05
-               wave_spectrum(i,j,8,iblk) = 6.815936703929992e-10
-               wave_spectrum(i,j,9,iblk) = 2.419401186610744e-20
-               ! hardwired for wave coupling with NIWA version of Wavewatch
-               ! From Wavewatch, f(n+1) = C*f(n) where C is a constant set by the user
-               ! These freq are for C = 1.1
-               wavefreq = (/0.04118,     0.045298,    0.0498278,   0.05481058,  0.06029164, &
-                            0.06632081,  0.07295289,  0.08024818,  0.08827299,  0.09710029, &
-                            0.10681032,  0.11749136,  0.1292405,   0.14216454,  0.15638101, &
-                            0.17201911,  0.18922101,  0.20814312,  0.22895744,  0.25185317, &
-                            0.27703848,  0.30474234,  0.33521661,  0.36873826,  0.40561208/)
+                     ! FOR TESTING ONLY - do not use for actual runs!!
+                     wave_spectrum(i,j,1,iblk) = 0.00015429197810590267
+                     wave_spectrum(i,j,2,iblk) = 0.002913531381636858
+                     wave_spectrum(i,j,3,iblk) = 0.02312942035496235
+                     wave_spectrum(i,j,4,iblk) = 0.07201970368623734
+                     wave_spectrum(i,j,5,iblk) = 0.06766948103904724
+                     wave_spectrum(i,j,6,iblk) = 0.005527883302420378
+                     wave_spectrum(i,j,7,iblk) = 3.326293881400488e-05
+                     wave_spectrum(i,j,8,iblk) = 6.815936703929992e-10
+                     wave_spectrum(i,j,9,iblk) = 2.419401186610744e-20
+                     ! hardwired for wave coupling with NIWA version of Wavewatch
+                     ! From Wavewatch, f(n+1) = C*f(n) where C is a constant set by the user
+                     ! These freq are for C = 1.1
+                     wavefreq = (/0.04118,     0.045298,    0.0498278,   0.05481058,  0.06029164, &
+                                  0.06632081,  0.07295289,  0.08024818,  0.08827299,  0.09710029, &
+                                  0.10681032,  0.11749136,  0.1292405,   0.14216454,  0.15638101, &
+                                  0.17201911,  0.18922101,  0.20814312,  0.22895744,  0.25185317, &
+                                  0.27703848,  0.30474234,  0.33521661,  0.36873826,  0.40561208/)
 
-               ! boundaries of bin n are at f(n)*sqrt(1/C) and f(n)*sqrt(C)
-               dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
+                     ! boundaries of bin n are at f(n)*sqrt(1/C) and f(n)*sqrt(C)
+                     dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
 
-               wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
-             else ! Data from WIM wave propagation
-               ! Update SWH and PPD
-                  wave_sig_ht(i,j,iblk) = swh(i,j,iblk)
-                  peak_period(i,j,iblk) = ppd(i,j,iblk)
-                  mean_wave_dir(i,j,iblk) = mwd(i,j,iblk)
-           endif ! WIM
-        endif ! tr_fsd
+                     wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+                 else ! WAVE_METH: Data from WIM wave propagation
+                   ! Update SWH and PPD
+                      wave_sig_ht(i,j,iblk) = swh(i,j,iblk)
+                      peak_period(i,j,iblk) = ppd(i,j,iblk)
+                      mean_wave_dir(i,j,iblk) = mwd(i,j,iblk)
+                 endif ! WAVE_METH
+             else ! WIM == 0: No waves
+                  write(nu_diag,*) 'ND: NO WAVES BEING FORCED'
+                  wave_sig_ht(i,j,iblk) = c0
+                  peak_period(i,j,iblk) = c0
+                  mean_wave_dir(i,j,iblk) = c0
+             endif ! WIM
+         endif ! tr_fsd
 
         !   Using Bretschneider to create a wave spectrum
         if (wave_sig_ht(i,j,iblk).gt.puny.and.peak_period(i,j,iblk).gt.puny) then
-          if (cmt.ne.0) then
-            !write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
-            !write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
-            !write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
-            !write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
-            !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
-          end if ! cmt
-          !!do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
-            !! wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
-           !!end do
-          !loc_swh     = fn_SpecMoment(swh(i,j,:,iblk),nfreq,1,om,mean_wave_dir(i,j,iblk),0,nu_diag)
-          ! c4*(loc_swh**(p5)) ! recalculating the SWH from the Spectrum at that point
-          if (cmt.ne.0) then
-            !write(nu_diag,*) ' ---- > SWH(i,j,iblk) after : ', wave_sig_ht(i,j,iblk)
-            !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
-          end if ! cmt
-        else
+            if (cmt.ne.0) then
+              !write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
+              !write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
+              !write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
+              !write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
+              !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
+            end if ! cmt
+            !!do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
+              !! wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
+             !!end do
+            !loc_swh     = fn_SpecMoment(swh(i,j,:,iblk),nfreq,1,om,mean_wave_dir(i,j,iblk),0,nu_diag)
+            ! c4*(loc_swh**(p5)) ! recalculating the SWH from the Spectrum at that point
+            if (cmt.ne.0) then
+              !write(nu_diag,*) ' ---- > SWH(i,j,iblk) after : ', wave_sig_ht(i,j,iblk)
+              !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
+            end if ! cmt
+        else ! SWH approx 0
             wave_spectrum(i,j,:,iblk) = c0
             !peak_period(i,j,:,iblk) = c0
             !mean_wave_dir(i,j,iblk) = pi
         end if ! SWH + Tp
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!        END WAVE-ICE CODE       !!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END NOAH DAY -----------------------------------------------------------------
 ! Back to CICE 6 code
 
