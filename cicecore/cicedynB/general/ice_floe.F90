@@ -391,7 +391,7 @@ end subroutine init_floe_0
     	      call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
  		  nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
  		 else
- 		   call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
+ 		   call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j), &
  		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
  		 endif
  		! Noah Day 20/3/21 ifloe(i,j) = D1
@@ -623,7 +623,7 @@ end subroutine init_floe_0
          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
        else
-         call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
+         call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
            nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
        endif ! ENDIF (do_coupled.ne.0)
        !print*, '... done wave-ice routine'
@@ -832,7 +832,7 @@ end subroutine init_floe_0
   !
   ! !DESCRIPTION:
   !
-  !  Increase ice floe tracer by scaled timestep length.
+  !  Increase ice floe tracer by scaled timestep length along meridonal lines.
   !
   ! !REVISION HISTORY: same as module
   !
@@ -1081,7 +1081,7 @@ end subroutine init_floe_0
             !write(nu_diag,*) '>>>--------------------------------------------->>>'
             !write(nu_diag,*) 'finished sub_balance'
        		   else
-       		        call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
+       		        call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j), &
        		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
        		   endif
        		   !ifloe(i,j) = D1
@@ -1340,7 +1340,7 @@ max_wavemask = dum_wavemask
                          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
                           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
                        else
-                         call sub_Uncoupled(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
+                         call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
                            nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
                        endif ! ENDIF (do_coupled.ne.0)
                        !print*, '... done wave-ice routine'
