@@ -566,6 +566,7 @@
              OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt, WIM_LONG
       use ice_forcing, only: init_wave_spec,init_wave_spec_usr,init_wave_spec_long
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_wim
 ! ------------------------------------------------------------------------------
 
       real (kind=dbl_kind), intent(in) :: &
@@ -690,7 +691,7 @@
 ! TURNING ON WAVES IN ICE MODULE
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-
+    call ice_timer_start(timer_wim)
 
     if (WIM.eq.1) then
       !-----------------------------------------------------------------
@@ -913,6 +914,7 @@
 
   !-------------------------------------------------------------------------------
   ! TURNING OFF WAVES IN ICE MODULE
+    call ice_timer_stop(timer_wim)
   endif ! WIM
   !-------------------------------------------------------------------------------
 
@@ -959,7 +961,7 @@
                       mean_wave_dir(i,j,iblk) = mwd(i,j,iblk)
                  endif ! WAVE_METH
              else ! WIM == 0: No waves
-                  write(nu_diag,*) 'ND: NO WAVES BEING FORCED'
+                  !write(nu_diag,*) 'ND: NO WAVES BEING FORCED'
                   wave_sig_ht(i,j,iblk) = c0
                   peak_period(i,j,iblk) = c0
                   mean_wave_dir(i,j,iblk) = c0

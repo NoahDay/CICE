@@ -62,8 +62,9 @@
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
-      timer_evp_2d             ! timer including conversion 1d/2d
+      timer_evp_2d,            &! timer including conversion 1d/2d
 !      timer_tmp               ! for temporary timings
+      timer_wim               ! ND: wave propagation
 
 !-----------------------------------------------------------------------
 !
@@ -189,7 +190,8 @@
 #endif
    call get_ice_timer(timer_evp_1d,   '1d-evp', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp_2d,   '2d-evp', nblocks,distrb_info%nprocs)
-!   call get_ice_timer(timer_tmp,      '         ',nblocks,distrb_info%nprocs)
+   !call get_ice_timer(timer_tmp,      '         ',nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_wim,      'Wave Propagation',nblocks,distrb_info%nprocs)
 
 !-----------------------------------------------------------------------
 
