@@ -233,7 +233,7 @@
       subroutine init_hist_fsd_3Df
 
       use ice_calendar, only: nstreams, histfreq
-      use ice_history_shared, only: tstr3Df, tcstr, define_hist_field
+      use ice_history_shared, only: tstr3Df, tstr3Dw, tcstr, define_hist_field ! ND: adding tstr3Dw
 
       logical (kind=log_kind) :: tr_fsd
       integer (kind=int_kind) :: ns
@@ -278,10 +278,13 @@
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
 ! Noah Day WIM, ----------------------------------------------------------------
+               !write(nu_diag,*) 'PRE-DEFINE_HIST'
         if (f_wave_spectrum(1:1) /= 'x') &
-           call define_hist_field(n_wave_spectrum,"wave_spectrum","1",tstr3Df, tcstr, &
-              "Energy wave spectrum",                       &
+           call define_hist_field(n_wave_spectrum,"wave_spectrum","m^2 s",tstr3Df, tcstr, &
+              "Wave spectrum as a function of frequency",                       &
               "Avg over freq period", c1, c0, ns, f_wave_spectrum)
+              !write(nu_diag,*) 'POST-DEFINE_HIST'
+              !write(nu_diag,*) ' SHAPE(tstr3Dw): ', SHAPE(tstr3Df)
 ! ------------------------------------------------------------------------------
          endif ! if (histfreq(ns) /= 'x')
       enddo ! ns
@@ -336,8 +339,8 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, c4
-      use ice_history_shared, only: a2D, a3Df, a3Dw, a4Df, nfsd_hist, & ! Noah Day adding a3Dw
-         ncat_hist, accum_hist_field, n3Dacum, n4Dscum
+      use ice_history_shared, only: a2D, a3Df, a3Dw, a4Df, nfsd_hist, nfreq_hist, & ! Noah Day adding a3Dw, nfreq_hist
+         ncat_hist, accum_hist_field, n3Dacum, n3Dfcum, n4Dscum
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
@@ -528,14 +531,29 @@
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
 
+
+
+      write(nu_diag,*) 'a3Df: ', SHAPE(a3Df)
+      write(nu_diag,*) 'd_afsd_weld(:,:,1:nfsd_hist,iblk): ', SHAPE(d_afsd_weld(:,:,1:nfsd_hist,iblk))
       endif ! a3Df allocated
-
+      write(nu_diag,*) n_dafsd_weld-n3Dacum
 ! Noah Day WIM -----------------------------------------------------------------
-  if (allocated(a3Dw)) then
-
+  if (allocated(a3Df)) then
+   !write(nu_diag,*) 'PRE-ACCUM_HIST', SHAPE(wave_spectrum)
+   !write(nu_diag,*) 'a3Dw: ', SHAPE(a3Dw)
+   !write(nu_diag,*) nfreq_hist
+   !write(nu_diag,*) n_wave_spectrum-n3Dacum
+   !write(nu_diag,*) n_wave_spectrum-n3Dfcum
+   !write(nu_diag,*) n_wave_spectrum
         if (f_wave_spectrum(1:1)/= 'x') &
-        call accum_hist_field(n_wave_spectrum, iblk, nfsd_hist, &
-                               wave_spectrum(:,:,1:nfsd_hist,iblk), a3Df)
+        !call accum_hist_field(n_wave_spectrum-n3Dacum, iblk, nfsd_hist, &
+         !                   wave_spectrum(:,:,1:nfsd_hist,iblk), a3Df)
+
+         call accum_hist_field(n_wave_spectrum-n3Dacum,   iblk, nfsd_hist, &
+            wave_spectrum(:,:,1:nfsd_hist,iblk), a3Df)
+ !write(nu_diag,*) 'POST a3Dw: ', SHAPE(a3Dw)
+   !a3Dw = wave_spectrum(:,:,1:nfreq_hist,iblk)
+  ! write(nu_diag,*) 'POST-ACCUM_HIST'
   end if ! a3Dw allocated
   ! ------------------------------------------------------------------------------
 

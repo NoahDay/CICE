@@ -106,7 +106,8 @@
          n3Dbcum , & ! n3Dzcum + num_avail_hist_fields_3Db
          n3Dacum , & ! n3Dbcum + num_avail_hist_fields_3Da
          n3Dfcum , & ! n3Dacum + num_avail_hist_fields_3Df
-         n4Dicum , & ! n3Dfcum + num_avail_hist_fields_4Di
+         n3Dwcum , & ! n3Dfcum + num_avail_hist_fields_3Df ND
+         n4Dicum , & ! n3Dwcum + num_avail_hist_fields_4Di
          n4Dscum , & ! n4Dicum + num_avail_hist_fields_4Ds
          n4Dfcum     ! n4Dscum + num_avail_hist_fields_4Df
 
@@ -127,7 +128,8 @@
 
       integer (kind=int_kind), public :: &
          ncat_hist              , & ! number of thickness categories written <= ncat
-         nfsd_hist                  ! number of floe size categories written <= nfsd
+         nfsd_hist              , & ! number of floe size categories written <= nfsd
+         nfreq_hist                 ! ND: number of frequency categories written <= nfreq
 
       real (kind=real_kind), public :: time_beg(max_nstrm), & ! bounds for averaging
                                        time_end(max_nstrm), &
@@ -140,10 +142,10 @@
          a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D thickness categories
          a3Da(:,:,:,:,:)  , & ! field accumulations/averages, 3D snow+bio
          a3Df(:,:,:,:,:)  , & ! field accumulations/averages, 3D floe size categories
+         a3Dw(:,:,:,:,:)  , & ! ND: field accumulations/averages, 3D wave spectrum categories
          a4Di(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, ice
          a4Ds(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, snow
-         a4Df(:,:,:,:,:,:), & ! field accumulations/averages, 4D floe size, thickness categories
-         a3Dw(:,:,:,:,:)      ! field accumulations/averages, 3D wave spectrum Noah Day WIM
+         a4Df(:,:,:,:,:,:)    ! field accumulations/averages, 4D floe size, thickness categories
 
       real (kind=dbl_kind), allocatable, public :: &
          Tinz4d (:,:,:,:)    , & ! array for Tin
@@ -172,6 +174,8 @@
          ustr3Da = 'ULON ULAT VGRDa time',& ! vcoord for U cell quantities, 3D
          tstr3Df = 'TLON TLAT NFSD  time',& ! vcoord for T cell quantities, 3D
          ustr3Df = 'ULON ULAT NFSD  time',& ! vcoord for U cell quantities, 3D
+         tstr3Dw = 'TLON TLAT NFREQ  time',& ! vcoord for T cell quantities, 3D ND: adding wave compatibility
+         ustr3Dw = 'ULON ULAT NFREQ  time',& ! vcoord for U cell quantities, 3D ND: adding wave compatibility
 
 !ferret
          tstr4Di = 'TLON TLAT VGRDi NCAT', & ! vcoord for T cell, 4D, ice
@@ -204,7 +208,7 @@
            f_bounds    = .true., f_NCAT       = .true., &
            f_VGRDi     = .true., f_VGRDs      = .true., &
            f_VGRDb     = .true., f_VGRDa      = .true., &
-           f_NFSD      = .false.
+           f_NFSD      = .false., f_NFREQ     = .true.
 
       character (len=max_nstrm), public :: &
 !          f_example   = 'md', &
@@ -350,7 +354,7 @@
            f_bounds   , f_NCAT     , &
            f_VGRDi    , f_VGRDs    , &
            f_VGRDb    , f_VGRDa    , &
-           f_NFSD     , &
+           f_NFSD     , f_NFREQ    , &
 !          f_example  , &
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
@@ -504,6 +508,7 @@
            n_VGRDb      = 4, &
            n_VGRDa      = 5, &
            n_NFSD       = 6, &
+           n_NFREQ      = 7, &
 
            n_lont_bnds  = 1, &
            n_latt_bnds  = 2, &
@@ -790,13 +795,16 @@
          if (vhistfreq(ns1:ns1) == histfreq(ns)) then
 
             num_avail_hist_fields_tot = num_avail_hist_fields_tot + 1
-
             if (vcoord(11:14) == 'time') then
                num_avail_hist_fields_2D  = num_avail_hist_fields_2D + 1
             elseif (vcoord(11:14) == 'NCAT' .and. vcoord(17:20) == 'time') then
                num_avail_hist_fields_3Dc = num_avail_hist_fields_3Dc + 1
             elseif (vcoord(11:14) == 'NFSD' .and. vcoord(17:20) == 'time') then
                num_avail_hist_fields_3Df = num_avail_hist_fields_3Df + 1
+            elseif (vcoord(11:15) == 'NFREQ' .and. vcoord(18:21) == 'time') then ! ND: adding NFREQ option
+               num_avail_hist_fields_3Dw = num_avail_hist_fields_3Dw + 1
+               !write(nu_diag,*) subname,' vcoord(11:15) = ',vcoord(11:15)
+               !write(nu_diag,*) subname,' vcoord(18:21) = ',vcoord(18:21)
             elseif (vcoord(11:15) == 'VGRDi' .and. vcoord(17:20) == 'time') then
                num_avail_hist_fields_3Dz = num_avail_hist_fields_3Dz + 1
             elseif (vcoord(11:15) == 'VGRDb' .and. vcoord(17:20) == 'time') then
@@ -826,6 +834,7 @@
                 num_avail_hist_fields_3Db + &
                 num_avail_hist_fields_3Da + &
                 num_avail_hist_fields_3Df + &
+                num_avail_hist_fields_3Dw + & ! ND: adding for NFREQ
                 num_avail_hist_fields_4Di + &
                 num_avail_hist_fields_4Ds + &
                 num_avail_hist_fields_4Df) then

@@ -315,6 +315,7 @@
       subroutine alloc_arrays_column
         ! Allocate column arrays
         use ice_exit, only: abort_ice
+        use ice_domain_size, only: nfreq ! ND: Adding nfreq
         integer (int_kind) :: max_nbtrcr, max_algae, max_aero, &
            nmodal1, nmodal2, max_don
         integer (int_kind) :: ierr, ntrcr
@@ -444,7 +445,7 @@
          wave_sig_ht    (nx_block,ny_block,          max_blocks), & !
          peak_period    (nx_block,ny_block,          max_blocks), & ! Noah Day WIM
          mean_wave_dir  (nx_block,ny_block,          max_blocks), & ! Noah Day WIM
-         sig_ht         (320, 384, 744), & ! Noah Day WIM
+         sig_ht         (nx_block, ny_block, 744), & ! Noah Day WIM
          wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
          d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !

@@ -41,7 +41,8 @@
       use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_flags, icepack_query_tracer_indices
 ! Noah Day WIM, adding nfreq for wave spectrum ---------------------------------
-      use ice_domain_size, only: nfreq
+     ! use ice_domain_size, only: nfreq
+     ! use ice_history_fsd, only: f_wave_spectrum, n_wave_spectrum
 ! ------------------------------------------------------------------------------
 
       implicit none
@@ -68,7 +69,7 @@
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_calendar, only: yday, days_per_year, histfreq, &
           histfreq_n, nstreams
-      use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
+      use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd, nfreq
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt
       use ice_history_shared ! everything
@@ -103,6 +104,7 @@
 
       ncat_hist = ncat    ! number of thickness categories written <= ncat
       nfsd_hist = nfsd    ! number of floe size categories written <= nfsd
+      nfreq_hist = nfreq  ! ND: number of wave spectrum categories written <= nfreq
       nzilyr = nilyr      ! vertical dimension (allows alternative grids)
       nzslyr = nslyr      ! snow
       nzblyr = nblyr+2    ! bio grid
@@ -290,6 +292,7 @@
       if (f_Tinz (1:1) /= 'x' .or. f_Sinz (1:1) /= 'x') f_VGRDi = .true.
       if (f_Tsnz (1:1) /= 'x')                          f_VGRDs = .true.
       if (tr_fsd)                                       f_NFSD  = .true.
+      if (tr_fsd)                                       f_NFREQ = .true.
 
       call broadcast_scalar (f_tmask, master_task)
       call broadcast_scalar (f_blkmask, master_task)
@@ -310,6 +313,7 @@
       call broadcast_scalar (f_VGRDb, master_task)
       call broadcast_scalar (f_VGRDa, master_task)
       call broadcast_scalar (f_NFSD, master_task)
+      call broadcast_scalar (f_NFREQ, master_task)
 
 !     call broadcast_scalar (f_example, master_task)
       call broadcast_scalar (f_hi, master_task)
@@ -1607,6 +1611,7 @@
       igrdz(n_VGRDb    ) = f_VGRDb
       igrdz(n_VGRDa    ) = f_VGRDa
       igrdz(n_NFSD     ) = f_NFSD
+     ! igrdz(n_NFREQ    ) = f_NFREQ
 
       !-----------------------------------------------------------------
       ! diagnostic output
@@ -1669,9 +1674,9 @@
       allocate(a3Df(nx_block,ny_block,nfsd_hist,num_avail_hist_fields_3Df,max_blocks))
 
 ! Noah Day ---------------------------------------------------------------------
-      !if (allocated(a3Dw)) deallocate(a3Dw)
-      !if (num_avail_hist_fields_3Dw > 0) &
-      !allocate(a3Dw(nx_block,ny_block,nfreq,num_avail_hist_fields_3Dw,max_blocks))
+      if (allocated(a3Dw)) deallocate(a3Dw)
+      if (num_avail_hist_fields_3Dw > 0) &
+      allocate(a3Dw(nx_block,ny_block,nfreq_hist,num_avail_hist_fields_3Dw,max_blocks))
 ! ------------------------------------------------------------------------------
 
       if (allocated(a4Di)) deallocate(a4Di)
@@ -1692,7 +1697,7 @@
       if (allocated(a3Db)) a3Db(:,:,:,:,:)   = c0
       if (allocated(a3Da)) a3Da(:,:,:,:,:)   = c0
       if (allocated(a3Df)) a3Df(:,:,:,:,:)   = c0
-      !if (allocated(a3Dw)) a3Dw(:,:,:,:,:)   = c0 ! Noah Day
+      if (allocated(a3Dw)) a3Dw(:,:,:,:,:)   = c0 ! Noah Day
       if (allocated(a4Di)) a4Di(:,:,:,:,:,:) = c0
       if (allocated(a4Ds)) a4Ds(:,:,:,:,:,:) = c0
       if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
@@ -1720,7 +1725,7 @@
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
-      use ice_domain_size, only: nfsd
+      use ice_domain_size, only: nfsd, nfreq
       use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu
       use ice_calendar, only: new_year, write_history, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
@@ -1781,6 +1786,9 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          ravgipn, worka3
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block,nfreq_hist) :: & ! Noah Day, 06/05/2022
+         workw3
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
@@ -1820,7 +1828,8 @@
       n3Dbcum = n3Dzcum + num_avail_hist_fields_3Db
       n3Dacum = n3Dbcum + num_avail_hist_fields_3Da
       n3Dfcum = n3Dacum + num_avail_hist_fields_3Df
-      n4Dicum = n3Dfcum + num_avail_hist_fields_4Di
+      n3Dwcum = n3Dfcum + num_avail_hist_fields_3Dw
+      n4Dicum = n3Dwcum + num_avail_hist_fields_4Di
       n4Dscum = n4Dicum + num_avail_hist_fields_4Ds
       n4Dfcum = n4Dscum + num_avail_hist_fields_4Df ! should equal num_avail_hist_fields_tot
 
@@ -1855,8 +1864,16 @@
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
                   a3Df(:,:,:,nn,:) = c0
            enddo
-           do n = n3Dfcum + 1, n4Dicum
-              nn = n - n3Dfcum
+           do n = n3Dfcum + 1, n3Dwcum
+            nn = n - n3Dfcum
+            write(nu_diag,*) 'nn = ', nn
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+                a3Dw(:,:,:,nn,:) = c0
+                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
+                write(nu_diag,*) 'available = ', nn
+           enddo
+           do n = n3Dwcum + 1, n4Dicum
+              nn = n - n3Dwcum
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
                   a4Di(:,:,:,:,nn,:) = c0
            enddo
@@ -2965,6 +2982,23 @@
 !             call accum_hist_field(n_field3dz-n3Dccum, iblk, nzilyr, &
 !                                   field3dz(:,:,1:nzilyr,iblk), a3Dz)
 
+         ! Noah Day---------------------------------------------------------------------------
+    !     if (f_wave_spectrum   (1:1) /= 'x') then
+    !        worka3(:,:,:) = c0
+    !        do n = 1,nfreq_hist
+    !        do j = jlo, jhi
+    !        do i = ilo, ihi
+    !           if (wave_spectrum(i,j,n,iblk) > puny) then
+    !              workw3(i,j,n) = wave_spectrum(i,j,n,iblk)
+    !           endif
+    !        enddo
+    !        enddo
+    !        enddo
+    !        call accum_hist_field(n_wave_spectrum-n3Dfcum, iblk, nfreq_hist, workw3(:,:,:), a3Dw)
+    !      endif
+! ------------------------------------------------------------------------------------------
+
+
          ! 4D category fields
          if (f_Tinz   (1:1) /= 'x') then
             Tinz4d(:,:,:,:) = c0
@@ -3804,10 +3838,28 @@
               endif
            enddo                ! n
 
+          ! do n = 1, num_avail_hist_fields_3Dw
+          !  nn = n3Dfcum + n
+          !  if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
+          !  do k = 1, nfreq
+          !  do j = jlo, jhi
+          !  do i = ilo, ihi
+          !     if (.not. tmask(i,j,iblk)) then ! mask out land points
+          !        a3Dw(i,j,k,n,iblk) = spval
+          !     else                            ! convert units
+          !        a3Dw(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dw(i,j,k,n,iblk) &
+          !                       * ravgct + avail_hist_fields(nn)%conb
+          !     endif
+          !  enddo             ! i
+          !  enddo             ! j
+          !  enddo             ! k
+          !  endif
+         !enddo                ! n
+
 
 
            do n = 1, num_avail_hist_fields_4Di
-              nn = n3Dfcum + n
+              nn = n3Dwcum + n
               if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
               do k = 1, nzilyr
               do ic = 1, ncat_hist
@@ -4000,7 +4052,7 @@
            if (allocated(a3Db)) a3Db(:,:,:,:,:)   = c0
            if (allocated(a3Da)) a3Da(:,:,:,:,:)   = c0
            if (allocated(a3Df)) a3Df(:,:,:,:,:)   = c0
-           !if (allocated(a3Dw)) a3Dw(:,:,:,:,:)   = c0 ! Noah Day
+           if (allocated(a3Dw)) a3Dw(:,:,:,:,:)   = c0 ! Noah Day
            if (allocated(a4Di)) a4Di(:,:,:,:,:,:) = c0
            if (allocated(a4Ds)) a4Ds(:,:,:,:,:,:) = c0
            if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
@@ -4037,15 +4089,15 @@
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Df(:,:,:,nn,:) = c0
         enddo
 ! Noah Day ---------------------------------------------------------------------
-!do n = n3Dacum + 1, n3Dfcum
-!   nn = n - n3Dacum
-!   if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Dw(:,:,:,nn,:) = c0
-!enddo
+         do n = n3Dfcum + 1, n3Dwcum
+            nn = n - n3Dfcum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a3Dw(:,:,:,nn,:) = c0
+         enddo
 
 ! ------------------------------------------------------------------------------
 
-        do n = n3Dfcum + 1, n4Dicum
-           nn = n - n3Dfcum
+        do n = n3Dwcum + 1, n4Dicum
+           nn = n - n3Dwcum
            if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a4Di(:,:,:,:,nn,:) = c0
         enddo
         do n = n4Dicum + 1, n4Dscum

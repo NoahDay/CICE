@@ -331,38 +331,36 @@ if (WIM.eq.1) then
     elseif (yr.eq.2020) then
       char_yr = '2020'
     endif
+
     if (WAVE_METH.eq.1) then
-       write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
-       write(nu_diag,*) '    sub_WW3_dataread year:', yr
-        if (mth.eq.1) then
-        call check( nf90_open(trim('/Users/noahday/GitHub/cice-dirs/input/CICE_data/forcing/gx1/CAWCR/MONTHLY/2005/ww3_200501.nc'), NF90_NOWRITE, ncid))
-        write(nu_diag,*) ' read in file'
-        ! call check( nf90_open(trim(waveicedatadir) //'/'//  trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.2) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '02.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.3) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '03.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.4) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '04.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.5) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '05.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.6) then
-          !write(nu_diag,*) trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc'
-         !call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '06.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.7) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '07.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.8) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '08.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.9) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '09.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.10) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '10.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.11) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '11.nc', NF90_NOWRITE, ncid) )
-        elseif (mth.eq.12) then
-         call check( nf90_open(trim(waveicedatadir) //'/'// trim(fname_ww3) // '12.nc', NF90_NOWRITE, ncid) )
-        endif
+      write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
+       if (mth.eq.1) then
+         call check( nf90_open(trim('/Users/a1724548/GitHub/cice-dirs/input/CICE_data/forcing/gx1/CAWCR/MONTHLY/2005/ww3_200501.nc'), NF90_NOWRITE, ncid ))
+        !call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.2) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '02.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.3) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '03.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.4) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '04.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.5) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '05.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.6) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '06.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.7) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '07.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.8) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '08.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.9) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '09.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.10) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '10.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.11) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '11.nc', NF90_NOWRITE, ncid) )
+       elseif (mth.eq.12) then
+         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '12.nc', NF90_NOWRITE, ncid) )
+       endif
+
         !write(nu_diag,*) '1st check done'
         varname = 'TLAT'
          call check( nf90_inq_varid(ncid, trim(varname), varid) )

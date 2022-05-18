@@ -432,7 +432,7 @@
       tfrz_option     = 'mushy'   ! freezing temp formulation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
-      nfreq           = 25        ! number of wave frequencies
+      nfreq           = 31        ! number of wave frequencies
       wave_spec_file  = ' '       ! wave forcing file name
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
@@ -805,6 +805,7 @@
       call broadcast_scalar(restart_fsd,          master_task)
       call broadcast_scalar(ncat,                 master_task)
       call broadcast_scalar(nfsd,                 master_task)
+      call broadcast_scalar(nfreq,                master_task) ! ND
       call broadcast_scalar(nilyr,                master_task)
       call broadcast_scalar(nslyr,                master_task)
       call broadcast_scalar(nblyr,                master_task)

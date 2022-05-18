@@ -598,13 +598,13 @@
       real(kind=dbl_kind), dimension(nfreq) :: alpha_coeff, wave_spectrum_in, wave_spectrum_out ! attenuation coefficient
       real(kind=dbl_kind) :: hice_init, Length_cell, aice_in!conc_coeff, Dav, Lcell, m0, m2, ice_thick
       real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka ! work for calculating mean FSD
-
-
-      real(kind=dbl_kind), dimension(nfreq)           :: om ! freqs
+      real (kind=dbl_kind), dimension(nx_block,ny_block,nfreq,nblocks) :: wave_spec_blk ! wave spectrum in m^2s/rad
+      
+      real(kind=dbl_kind), dimension(nfreq)           :: om ! freqs, rad/s
       real(kind=dbl_kind)                  :: fmin, fmax
-                                                  ! freq min/max
+                                                  ! freq min/max, 1/s
       real(kind=dbl_kind)                  :: om1, om2
-                                                  ! ang freqs
+                                                  ! ang freqs, rad/s
       real(kind=dbl_kind)                  :: om_0
 
       real(kind=dbl_kind)                  :: loc_swh ! dummy swh holder
@@ -855,6 +855,15 @@
                 enddo
              enddo
 
+             ! Convert from m^2s to m^2s/rad
+             do j = 1, ny_block
+               do i = 1, nx_block
+                  do k = 1, nfreq
+                     wave_spec_blk(i,j,k,iblk) = wave_spectrum(i,j,k,iblk)!/(2*pi)
+                  enddo
+               enddo
+            enddo
+             
              if (WIM_LONG.eq.1) then ! Propagate waves per cell
                 !write(nu_diag,*) 'Calling increment_floe_long..............'
                 call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
@@ -868,7 +877,7 @@
                                        ov_conc, ov_vol, & ! afice, vfice
                                         wavemask_dyn,   & ! dum_wavemask
                                         wavemask_dyn_vec,   & ! dum_wavemask
-                                        wave_spectrum(:,:,:,iblk)) ! wave spectrum
+                                        wave_spec_blk(:,:,:,iblk)) ! wave spectrum
              else ! Propagate waves on a block wise basis
                call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
                                        dt,              & ! dt
@@ -880,9 +889,19 @@
                                        ifd(:,:,iblk),   & ! ifloe
                                       ov_conc, ov_vol, & ! afice, vfice
                                        wavemask_dyn,   & ! dum_wavemask
-                                       wave_spectrum(:,:,:,iblk)) ! wave spectrum
+                                       wave_spec_blk(:,:,:,iblk)) ! wave spectrum
                                        !write(nu_diag,*) ' Called increment floe'
              endif ! WIM_LONG
+             ! Convert from m^2s/rad to m^2s
+             do j = 1, ny_block
+               do i = 1, nx_block
+                  do k = 1, nfreq
+                     wave_spectrum(i,j,k,iblk) = wave_spec_blk(i,j,k,iblk)!*(2*pi)
+                    ! if (k.gt.1.0) write(nu_diag,*) ' Cell with waves has coords:', i,j
+                  enddo
+               enddo
+            enddo
+             
          else !!! Wave-ice interaction code OFF
 
              write(nu_diag,*) '----------------------------------------------------'
@@ -894,10 +913,10 @@
 
     ! Noah Day WIM 25/10/21
     ! Creating a wave spectrum in the icepack using the attenuated significant wave height and peak period
-    fmin = 1d0/16d0
-    fmax = 1d0/6d0
-    om1=2*pi*fmin
-    om2=2*pi*fmax
+    fmin = 1d0/1000d0 ! minimum frequency, 1/s
+    fmax = 1d0/1d0 ! maximum frequency, 1/s
+    om1=2*pi*fmin ! angular frequency, rad/s
+    om2=2*pi*fmax ! angular frequency, rad/s
     om_0 = (om2 - om1)/(nfreq-1)
     ! Importing om values
     do lp_i=1,nfreq
@@ -910,7 +929,7 @@
     end do
 
     wavefreq(:) = om(:)
-    dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
+    !dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
 
   !-------------------------------------------------------------------------------
   ! TURNING OFF WAVES IN ICE MODULE
@@ -928,7 +947,7 @@
              if (WIM.eq.1) then ! Noah Day WIM, if WIM is off: calculate SWH from dummy data
                  if (WAVE_METH.eq.0) then ! Use dummy data from CICE code
                      ! set for 25 frequencies
-                     nfreq = 25
+                     !nfreq = 25 ! ND: previously set to 25
                      wave_spectrum(i,j,:,iblk) = c0
 
                      ! FOR TESTING ONLY - do not use for actual runs!!
@@ -971,11 +990,11 @@
         !   Using Bretschneider to create a wave spectrum
         if (wave_sig_ht(i,j,iblk).gt.puny.and.peak_period(i,j,iblk).gt.puny) then
             if (cmt.ne.0) then
-              !write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
-              !write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
-              !write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
-              !write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
-              !write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
+              write(nu_diag,*) 'FOR CELL (i,j,iblk): ', i,j,iblk
+              write(nu_diag,*) ' ---- > SWH(i,j,iblk) before: ', wave_sig_ht(i,j,iblk)
+              write(nu_diag,*) ' ---- > wave_spectrum SHAPE: ', SHAPE(wave_spectrum)
+              write(nu_diag,*) ' ---- > dwavefreq: ', dwavefreq
+              write(nu_diag,*) ' ---- > wave_spectrum(i,j,:,iblk): ', wave_spectrum(i,j,:,iblk)
             end if ! cmt
             !!do lp_i=1,nfreq ! calculate the wave spectrum for each cell given peak period and significant wave height
               !! wave_spectrum(i,j,lp_i,iblk) = SDF_Bretschneider(om(lp_i),0,swh(i,j,iblk),peak_period(i,j,iblk))
