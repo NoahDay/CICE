@@ -2329,8 +2329,8 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
    real (real_kind), allocatable :: sums4(:)
    real (dbl_kind) , allocatable :: psums8(:)
    ! if r16 is not available (NO_R16), then r16 reverts to double precision (r8)
-   real (r16_kind) , allocatable :: psums16(:)
-   real (r16_kind) , allocatable :: sums16(:)
+   real (real_kind) , allocatable :: psums16(:)
+   real (real_kind) , allocatable :: sums16(:)
 
    integer (int_kind) :: ns,nf,i,j, ierr
 
@@ -2365,13 +2365,13 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
    ! if no_r16 is set, this will revert to a double precision calculation like lsum8
    elseif (bfbflag == 'lsum16') then
       allocate(psums16(nf))
-      psums16(:) = 0._r16_kind
+      psums16(:) = 0._real_kind
       allocate(sums16(nf))
-      sums16(:) = 0._r16_kind
+      sums16(:) = 0._real_kind
 
       do j = 1, nf
       do i = 1, ns
-         psums16(j) = psums16(j) + real(array2(i,j),r16_kind)
+         psums16(j) = psums16(j) + real(array2(i,j),real_kind)
       enddo
       enddo
 

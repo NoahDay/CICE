@@ -1110,17 +1110,17 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! dimension size
+         status, &             ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! dimension size
 
       real (kind=dbl_kind) :: &
          missingvalue, &
          amin, amax, asum   ! min, max values and sum of input array
 
-!     character (char_len) :: &
-!        dimname            ! dimension name            
+     character (char_len) :: &
+        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1195,12 +1195,12 @@
            write(nu_diag,*) & 
              'ice_read_nc_xy, fid= ',fid, ', nrec = ',nrec, & 
              ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= missingvalue)
          asum = sum   (work_g1, mask = work_g1 /= missingvalue)
@@ -1283,17 +1283,17 @@
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
          varid         , & ! variable id
-         status            ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension
+         status, &            ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          missingvalue,    & ! missing value
          amin, amax, asum   ! min, max values and sum of input array
 
-!     character (char_len) :: &
-!        dimname            ! dimension name            
+     character (char_len) :: &
+        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -1366,12 +1366,12 @@
            write(nu_diag,*) & 
              'ice_read_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
              ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
          do n=1,ncat
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
@@ -1831,17 +1831,17 @@
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension
+         status, &             ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
-         lvarname           ! variable name
-!        dimname            ! dimension name            
+         lvarname, &           ! variable name
+        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1895,15 +1895,15 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-!          write(nu_diag,*) & 
-!            'ice_write_nc_xy, fid= ',fid, ', nrec = ',nrec, & 
-!            ', varid = ',varid
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+          write(nu_diag,*) & 
+            'ice_write_nc_xy, fid= ',fid, ', nrec = ',nrec, & 
+            ', varid = ',varid
+          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= spval_dbl)
          asum = sum   (work_g1, mask = work_g1 /= spval_dbl)
@@ -1955,17 +1955,17 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          n,               & ! ncat index
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension
+         status, &             ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
       character (char_len) :: &
-         lvarname           ! variable name
-!        dimname            ! dimension name            
+         lvarname, &           ! variable name
+        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
@@ -2025,15 +2025,15 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-!          write(nu_diag,*) & 
-!            'ice_write_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
-!            ', varid = ',varid
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+          write(nu_diag,*) & 
+            'ice_write_nc_xyz, fid= ',fid, ', nrec = ',nrec, & 
+            ', varid = ',varid
+          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
          amin =  10000._dbl_kind
          amax = -10000._dbl_kind
          do n=1,ncat
@@ -2085,17 +2085,17 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid,           & ! netcdf id for field
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension      
+         status, &             ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! size of dimension      
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!    character (char_len) :: &
-!        dimname            ! dimension name            
-!
+    character (char_len) :: &
+        dimname            ! dimension name            
+
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g3
 
@@ -2103,12 +2103,16 @@
          if (my_task == master_task) then
             allocate(work_g3(nx_global+2,ny_global+1))
          else
-            allocate(work_g3(1,1))   ! to save memory
+            !allocate(work_g3(1,1))   ! to save memory !ND: commenting out
+            ! allocate(work_g3(nx_global+2,ny_global+1)) ! ND: this used to be (N_lat,1)
          endif
-         work_g3(:,:) = c0     
+         !work_g3(:,:) = c0     
       endif
-
-      work_g(:,:) = c0
+      status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+       write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+      allocate(work_g3(360,300)) ! ND: this used to be (N_lat,1)
+      !allocate(work_g1(300,360)) ! ND: this used to be (N_lat,1)
+      !work_g(:,:) = c0 !ND: commenting out
 
       if (my_task == master_task) then
 
@@ -2117,7 +2121,8 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
-
+         write(nu_diag,*) 'ND: varname', trim(varname)
+          write(nu_diag,*) 'ND: status', status
          if (status /= nf90_noerr) then
            call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
@@ -2125,33 +2130,63 @@
        !--------------------------------------------------------------
        ! Read global array 
        !--------------------------------------------------------------
- 
-         if (orca_halogrid) then
-            status = nf90_get_var( fid, varid, work_g3, &
-                  start=(/1,1,nrec/), &
-                  count=(/nx_global+2,ny_global+1,1/) )
-            work_g=work_g3(2:nx_global+1,1:ny_global)
-         else
-            status = nf90_get_var( fid, varid, work_g, &
-                  start=(/1,1,nrec/), & 
-                  count=(/nx_global,ny_global,1/) )
-         endif
+
+
+
+
+!!         if (orca_halogrid) then
+!!            status = nf90_get_var( fid, varid, work_g3, &
+!!                  start=(/1,1,nrec/), &
+!!                  count=(/nx_global+2,ny_global+1,1/) )
+!!            work_g=work_g3(2:nx_global+1,1:ny_global)
+!!         else
+!!            status = nf90_get_var( fid, varid, work_g, &
+!!                  start=(/1,1,nrec/), & 
+!!                  count=(/nx_global,ny_global,1/) )
+!!            write(nu_diag,*) 'ND: status', status
+!!         endif
+!!      endif                     ! my_task = master_task
+!#ifndef ORCA_GRID
+!         status = nf90_get_var( fid, varid, work_g, &
+!               start=(/1,1,nrec/), & 
+!               count=(/nx_global,ny_global,1/) )
+!#else
+         status = nf90_get_var( fid, varid, work_g3)!, &
+               !start=(/1,1,nrec/), &
+               !count=(/nx_global,ny_global/) )
+               !count=(/nx_global+2,ny_global+1,1/) )
+
+         write(nu_diag,*) 'ND get var: status', status
+          write(nu_diag,*) 'SHAPE grid g3:', SHAPE(work_g3)
+        ! write(nu_diag,*) 'Output grid g3:', work_g3
+         work_g = work_g3!(2:nx_global+1,1:ny_global)
+!#endif
       endif                     ! my_task = master_task
+
+      !nf90_open(trim('/Users/noahday/GitHub/cice-dirs/input/CICE_data/grid/om2_1deg/icegrid_nonc.nc'), NF90_NOWRITE, ncid) 
+
+      !nf90_inq_varid(fid, trim(varname), varid) 
+      !nf90_inquire_variable(fid, varid, nDimensions=ndim)
+      
+       write(nu_diag,*) 'ND: spval_dbl ', spval_dbl
+
 
     !-------------------------------------------------------------------
     ! optional diagnostics
     !-------------------------------------------------------------------
-
+      write(nu_diag,*) 'ND: optional diagnostics '
       if (my_task == master_task .and. diag) then
-!          write(nu_diag,*) & 
-!            'ice_read_global_nc, fid= ',fid, ', nrec = ',nrec, & 
-!            ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+          write(nu_diag,*) & 
+            'ice_read_global_nc, fid= ',fid, ', nrec = ',nrec, & 
+            ', varname = ',trim(varname)
+          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+          write(nu_diag,*) 'ndim= ',ndim,', nvar= ',nvar
+          do id=1,ndim
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+         enddo
+         
+         write(nu_diag,*) 'Output grid:', work_g(1:10,1:10)
          amin = minval(work_g)
          amax = maxval(work_g, mask = work_g /= spval_dbl)
          asum = sum   (work_g, mask = work_g /= spval_dbl)
@@ -2240,16 +2275,16 @@
 ! netCDF file diagnostics:
       integer (kind=int_kind) :: & 
          varid          , & ! variable id
-         status             ! status output from netcdf routines
-!        ndim, nvar,      & ! sizes of netcdf file
-!        id,              & ! dimension index
-!        dimlen             ! size of dimension
+         status, &             ! status output from netcdf routines
+        ndim, nvar,      & ! sizes of netcdf file
+        id,              & ! dimension index
+        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
 
-!     character (char_len) :: &
-!        dimname            ! dimension name            
+     character (char_len) :: &
+        dimname            ! dimension name            
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1

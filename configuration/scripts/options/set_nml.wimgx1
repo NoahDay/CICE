@@ -1,0 +1,12 @@
+tr_fsd = .true.
+nfsd = 16
+wave_spec_type = 'profile'
+nfreq = 31
+ice_ic         = '/Users/noahday/GitHub/cice-dirs/input/CICE_data/ic/gx1/iced_gx1_v6.2005-01-01.nc'
+nprocs = 1
+nx_global         = 300
+ny_global         = 360
+block_size_x      = 20
+block_size_y      = 180
+max_blocks        = 32
+ssh_stress      = 'geostrophic'

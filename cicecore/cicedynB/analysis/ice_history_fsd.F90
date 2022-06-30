@@ -533,10 +533,10 @@
 
 
 
-      write(nu_diag,*) 'a3Df: ', SHAPE(a3Df)
-      write(nu_diag,*) 'd_afsd_weld(:,:,1:nfsd_hist,iblk): ', SHAPE(d_afsd_weld(:,:,1:nfsd_hist,iblk))
+     ! write(nu_diag,*) 'a3Df: ', SHAPE(a3Df)
+     ! write(nu_diag,*) 'd_afsd_weld(:,:,1:nfsd_hist,iblk): ', SHAPE(d_afsd_weld(:,:,1:nfsd_hist,iblk))
       endif ! a3Df allocated
-      write(nu_diag,*) n_dafsd_weld-n3Dacum
+      !write(nu_diag,*) n_dafsd_weld-n3Dacum
 ! Noah Day WIM -----------------------------------------------------------------
   if (allocated(a3Df)) then
    !write(nu_diag,*) 'PRE-ACCUM_HIST', SHAPE(wave_spectrum)
