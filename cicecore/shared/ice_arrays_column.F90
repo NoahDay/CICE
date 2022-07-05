@@ -291,8 +291,9 @@
       ! Noah Day WIM -----------------------------------------------------------
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
         peak_period, &        ! peak period of waves (s)
-        mean_wave_dir, &         ! mean wave direction (rads)
-        sig_ht                ! temp significant wave height (m) for reading in data
+        mean_wave_dir, &      ! mean wave direction (rads)
+        sig_ht, &             ! temp significant wave height (m) for reading in data
+        pancake_ice           ! pancake ice area (proportion)
       ! ------------------------------------------------------------------------
 
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
@@ -446,6 +447,7 @@
          peak_period    (nx_block,ny_block,          max_blocks), & ! Noah Day WIM
          mean_wave_dir  (nx_block,ny_block,          max_blocks), & ! Noah Day WIM
          sig_ht         (nx_block, ny_block, 744), & ! Noah Day WIM
+         pancake_ice    (nx_block,ny_block,          max_blocks), & ! Noah Day PANCAKE
          wave_spectrum  (nx_block,ny_block,nfreq,    max_blocks), & !
          d_afsd_newi    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_latg    (nx_block,ny_block,nfsd,     max_blocks), & !

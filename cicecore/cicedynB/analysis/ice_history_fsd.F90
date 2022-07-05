@@ -42,6 +42,7 @@
       character (len=max_nstrm), public :: f_peak_period = 'm'
       character (len=max_nstrm), public :: f_mean_wave_dir = 'm'
       character (len=max_nstrm), public :: f_wave_spectrum = 'm'
+      character (len=max_nstrm), public :: f_pancake_ice = 'm'
 ! ------------------------------------------------------------------------------
 
 
@@ -57,8 +58,9 @@
            f_aice_ww   , f_diam_ww    , &
            f_hice_ww   , f_fsdrad     , &
            f_fsdperim  , f_peak_period, &
-           f_mean_wave_dir, f_wave_spectrum
-           ! Noah Day WIM, adding f_peak_period, f_mean_wave_dir, f_wave_spectrum
+           f_mean_wave_dir, f_wave_spectrum, &
+           f_pancake_ice
+           ! Noah Day WIM, adding f_peak_period, f_mean_wave_dir, f_wave_spectrum, f_pancake_ice
 
 
 
@@ -74,8 +76,9 @@
            n_aice_ww   , n_diam_ww    , &
            n_hice_ww   , n_fsdrad     , &
            n_fsdperim  , n_peak_period, &
-           n_mean_wave_dir, n_wave_spectrum
-           ! Noah Day WIM, adding n_peak_period, n_mean_wave_dir, n_wave_spectrum
+           n_mean_wave_dir, n_wave_spectrum, &
+           n_pancake_ice
+           ! Noah Day WIM, adding n_peak_period, n_mean_wave_dir, n_wave_spectrum, n_pancake_ice
 
 !=======================================================================
 
@@ -150,6 +153,7 @@
       call broadcast_scalar (f_peak_period, master_task)
       call broadcast_scalar (f_mean_wave_dir, master_task)
       call broadcast_scalar (f_wave_spectrum, master_task)
+      call broadcast_scalar (f_pancake_ice, master_task)
 ! ------------------------------------------------------------------------------
 
       ! 2D variables
@@ -196,6 +200,11 @@
               "mean wave direction of swell waves",  &
               "from attenuated spectrum in ice", c1, c0,     &
               ns, f_mean_wave_dir)
+      if (f_pancake_ice(1:1) /= 'x') &
+          call define_hist_field(n_pancake_ice,"pancake_ice","1",tstr2D, tcstr, &
+              "pancake ice concentration",  &
+              "from aice", c1, c0,     &
+              ns, f_pancake_ice)
 ! ------------------------------------------------------------------------------
 
 
@@ -215,6 +224,7 @@
          f_peak_period = 'x'
          f_mean_wave_dir = 'x'
          f_wave_spectrum = 'x'
+         f_pancake_ice = 'x'
          ! ---------------------------------------------------------------------
          f_fsdrad      = 'x'
          f_fsdperim    = 'x'
@@ -346,7 +356,7 @@
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
 ! Noah Day WIM -----------------------------------------------------------------
-      use ice_arrays_column, only: peak_period, mean_wave_dir, wave_spectrum
+      use ice_arrays_column, only: peak_period, mean_wave_dir, wave_spectrum, pancake_ice
 ! ------------------------------------------------------------------------------
 
       integer (kind=int_kind), intent(in) :: &
@@ -397,6 +407,12 @@
       if (f_mean_wave_dir(1:1)/= 'x') &
          call accum_hist_field(n_mean_wave_dir,   iblk, &
                                mean_wave_dir(:,:,iblk), a2D)
+! ------------------------------------------------------------------------------
+
+! Noah Day WIM -----------------------------------------------------------------
+      if (f_pancake_ice(1:1)/= 'x') &
+         call accum_hist_field(n_pancake_ice,   iblk, &
+                               pancake_ice(:,:,iblk), a2D)
 ! ------------------------------------------------------------------------------
 
 

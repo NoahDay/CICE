@@ -593,7 +593,8 @@
 
       use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
          wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
-         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+         d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld, &
+         pancake_ice !ND: adding pancake ice
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
       use ice_state, only: aicen
@@ -624,6 +625,7 @@
       wavefreq       (:)       = c0
       dwavefreq      (:)       = c0
       wave_sig_ht    (:,:,:)   = c0
+      pancake_ice    (:,:,:)   = c0 ! ND: Pancake ice 
       wave_spectrum  (:,:,:,:) = c0
       d_afsd_newi    (:,:,:,:) = c0
       d_afsd_latg    (:,:,:,:) = c0

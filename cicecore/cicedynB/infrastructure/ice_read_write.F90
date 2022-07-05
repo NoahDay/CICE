@@ -2103,16 +2103,10 @@
          if (my_task == master_task) then
             allocate(work_g3(nx_global+2,ny_global+1))
          else
-            !allocate(work_g3(1,1))   ! to save memory !ND: commenting out
-            ! allocate(work_g3(nx_global+2,ny_global+1)) ! ND: this used to be (N_lat,1)
+            allocate(work_g3(1,1))   ! to save memory 
          endif
-         !work_g3(:,:) = c0     
+         work_g3(:,:) = c0     
       endif
-      status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-       write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
-      allocate(work_g3(360,300)) ! ND: this used to be (N_lat,1)
-      !allocate(work_g1(300,360)) ! ND: this used to be (N_lat,1)
-      !work_g(:,:) = c0 !ND: commenting out
 
       if (my_task == master_task) then
 
@@ -2134,41 +2128,42 @@
 
 
 
-!!         if (orca_halogrid) then
-!!            status = nf90_get_var( fid, varid, work_g3, &
-!!                  start=(/1,1,nrec/), &
-!!                  count=(/nx_global+2,ny_global+1,1/) )
-!!            work_g=work_g3(2:nx_global+1,1:ny_global)
-!!         else
-!!            status = nf90_get_var( fid, varid, work_g, &
-!!                  start=(/1,1,nrec/), & 
-!!                  count=(/nx_global,ny_global,1/) )
-!!            write(nu_diag,*) 'ND: status', status
-!!         endif
-!!      endif                     ! my_task = master_task
-!#ifndef ORCA_GRID
-!         status = nf90_get_var( fid, varid, work_g, &
-!               start=(/1,1,nrec/), & 
-!               count=(/nx_global,ny_global,1/) )
-!#else
+         if (orca_halogrid) then
+            status = nf90_get_var( fid, varid, work_g3, &
+                  start=(/1,1,nrec/), &
+                  count=(/nx_global+2,ny_global+1,1/) )
+            work_g=work_g3(2:nx_global+1,1:ny_global)
+         else
+            !status = nf90_get_var( fid, varid, work_g, &
+            !      start=(/1,1,nrec/), & 
+            !      count=(/nx_global,ny_global,1/) )
+            ! ND: start
+            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+            write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
+            write(nu_diag,*) 'nx_global = ',nx_global,', ny_global = ',ny_global
+            allocate(work_g3(nx_global,ny_global)) ! ND: this used to be (360,300)
+            !write(nu_diag,*) 'ND: status', status
+            ! ND: end
+         endif
+      endif                     ! my_task = master_task
+#ifndef ORCA_GRID
+         status = nf90_get_var( fid, varid, work_g, &
+               start=(/1,1,nrec/), & 
+               count=(/nx_global,ny_global,1/) )
+#else
          status = nf90_get_var( fid, varid, work_g3)!, &
                !start=(/1,1,nrec/), &
                !count=(/nx_global,ny_global/) )
                !count=(/nx_global+2,ny_global+1,1/) )
 
-         write(nu_diag,*) 'ND get var: status', status
-          write(nu_diag,*) 'SHAPE grid g3:', SHAPE(work_g3)
+         !write(nu_diag,*) 'ND get var: status', status
+         !write(nu_diag,*) 'SHAPE grid g3:', SHAPE(work_g3)
         ! write(nu_diag,*) 'Output grid g3:', work_g3
          work_g = work_g3!(2:nx_global+1,1:ny_global)
-!#endif
-      endif                     ! my_task = master_task
-
-      !nf90_open(trim('/Users/noahday/GitHub/cice-dirs/input/CICE_data/grid/om2_1deg/icegrid_nonc.nc'), NF90_NOWRITE, ncid) 
-
-      !nf90_inq_varid(fid, trim(varname), varid) 
-      !nf90_inquire_variable(fid, varid, nDimensions=ndim)
+#endif
+      !endif                     ! my_task = master_task
       
-       write(nu_diag,*) 'ND: spval_dbl ', spval_dbl
+       !write(nu_diag,*) 'ND: spval_dbl ', spval_dbl
 
 
     !-------------------------------------------------------------------
@@ -2186,7 +2181,7 @@
             write(nu_diag,*) 'Dim name = ',trim(dimname),', size = ',dimlen
          enddo
          
-         write(nu_diag,*) 'Output grid:', work_g(1:10,1:10)
+         !write(nu_diag,*) 'Output grid:', work_g(1:10,1:10)
          amin = minval(work_g)
          amax = maxval(work_g, mask = work_g /= spval_dbl)
          asum = sum   (work_g, mask = work_g /= spval_dbl)

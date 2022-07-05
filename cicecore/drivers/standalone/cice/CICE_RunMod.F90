@@ -368,6 +368,7 @@ if (WIM.eq.1) then
     	   call check( nf90_inquire_variable(ncid, varid, ndims = numDims) )
          call check( nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims)) )
          call check( nf90_inquire_dimension(ncid, rhDimIds(1), len = N_lat) )
+         write(nu_diag,*) 'ND: N_lat is:', N_lat
          N_lat = 384 ! grid resolution
          allocate(ww3_lat(1,N_lat)) ! noah day this used to be (N_lat,1)
          write(nu_diag,*) 'Number of dimensions', numDims
