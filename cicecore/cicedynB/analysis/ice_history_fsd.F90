@@ -351,7 +351,7 @@
       use ice_constants, only: c0, c1, c2, c4
       use ice_history_shared, only: a2D, a3Df, a3Dw, a4Df, nfsd_hist, nfreq_hist, & ! Noah Day adding a3Dw, nfreq_hist
          ncat_hist, accum_hist_field, n3Dacum, n3Dfcum, n4Dscum
-      use ice_state, only: trcrn, aicen_init, vicen, aice_init
+      use ice_state, only: trcrn, aicen_init, vicen, aice_init, trcr ! ND: adding trcr
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
 
@@ -366,8 +366,9 @@
 
       integer (kind=int_kind) :: &
          i, j, n, k, & ! loop indices
-         nt_fsd        ! ! fsd tracer index
-      logical (kind=log_kind) :: tr_fsd
+         nt_fsd, &     ! ! fsd tracer index
+         nt_pan        ! ND: adding pancake ice
+      logical (kind=log_kind) :: tr_fsd, tr_pan ! ND: adding pancake ice
       real (kind=dbl_kind) :: floeshape, puny
 
       real (kind=dbl_kind) :: workb, workc
@@ -380,6 +381,8 @@
       call icepack_query_parameters(floeshape_out=floeshape, puny_out=puny)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+      call icepack_query_tracer_flags(tr_pan_out=tr_pan) !ND: adding pancake ice
+      call icepack_query_tracer_indices(nt_pan_out=nt_pan) !ND: adding pancake ice
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -410,9 +413,23 @@
 ! ------------------------------------------------------------------------------
 
 ! Noah Day WIM -----------------------------------------------------------------
-      if (f_pancake_ice(1:1)/= 'x') &
-         call accum_hist_field(n_pancake_ice,   iblk, &
-                               pancake_ice(:,:,iblk), a2D)
+
+!      write(nu_diag,*) 'ND: nt_pan', nt_pan
+!      write(nu_diag,*) 'ND: shape(trcrn)', SHAPE(trcrn)
+!      write(nu_diag,*) 'ND: shape(trcrn)', SHAPE(trcrn(i,j,nt_pan,:,iblk))
+!      write(nu_diag,*) 'ND: nt_fsd', nt_fsd
+
+      if (f_pancake_ice(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = 1, ny_block
+           do i = 1, nx_block
+          ! do n = 1,ncat_hist
+              if (aicen_init(i,j,1,iblk) > puny) worka(i,j) = aicen_init(i,j,1,iblk)*trcrn(i,j,nt_pan,1,iblk)
+           !enddo
+           enddo
+           enddo
+           call accum_hist_field(n_pancake_ice, iblk, worka(:,:), a2D)
+         endif
 ! ------------------------------------------------------------------------------
 
 

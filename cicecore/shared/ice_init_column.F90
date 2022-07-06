@@ -1777,11 +1777,11 @@
          nk_bgc       ! layer index
 
       integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd, tr_pan ! ND: adding pancake ice
       logical (kind=log_kind) :: tr_iso, tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
-      integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
+      integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice, nt_pan ! ND: adding pancake ice
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1869,7 +1869,7 @@
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
          tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out =tr_bgc_Fe,  tr_zaero_out  =tr_zaero,     &
-         tr_bgc_hum_out=tr_bgc_hum)
+         tr_bgc_hum_out=tr_bgc_hum, tr_pan_out=tr_pan) ! ND: adding pancake ice
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -1892,6 +1892,13 @@
       if (tr_iage) then
           ntrcr = ntrcr + 1
           nt_iage = ntrcr   ! chronological ice age
+      endif
+
+      nt_pan = 0
+      if (tr_pan) then
+          ntrcr = ntrcr + 1
+          nt_pan = ntrcr   ! ND: adding pancake ice
+          !write(nu_diag,*) 'ND: ntrcr', nt_pan
       endif
 
       nt_FY = 0
@@ -2247,7 +2254,7 @@
       call icepack_init_tracer_indices(nt_Tsfc_in=nt_Tsfc, nt_sice_in=nt_sice, &
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
-         nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
+         nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, nt_pan_in=nt_pan, & ! ND: adding pancake ice
          nt_isosno_in=nt_isosno,     nt_isoice_in=nt_isoice,       nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &

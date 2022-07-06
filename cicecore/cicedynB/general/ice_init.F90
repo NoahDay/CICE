@@ -74,7 +74,7 @@
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
-          restart_fsd, restart_iso
+          restart_fsd, restart_iso, restart_pan ! ND: adding pancake ice
       use ice_restart_shared, only: &
           restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
@@ -140,7 +140,7 @@
                                  sw_redist, calc_dragio
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
-      logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_pan ! ND: adding pancake
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
@@ -190,6 +190,7 @@
         tr_iso, restart_iso,                                            &
         tr_aero, restart_aero,                                          &
         tr_fsd, restart_fsd,                                            &
+        tr_pan, restart_pan,                                            &
         n_iso, n_aero, n_zaero, n_algae,                                &
         n_doc, n_dic, n_don, n_fed, n_fep
 
@@ -476,8 +477,10 @@
       restart_iso  = .false. ! isotopes restart
       tr_aero      = .false. ! aerosols
       restart_aero = .false. ! aerosols restart
-      tr_fsd       = .true. ! floe size distribution ! Noah Day WIM, changed from .false.
+      tr_fsd       = .false. ! floe size distribution ! Noah Day WIM, changed from .false.
       restart_fsd  = .false. ! floe size distribution restart
+      tr_pan       = .true. ! floe size distribution ! Noah Day WIM, changed from .false.
+      restart_pan  = .false. ! floe size distribution restart
 
       n_iso = 0
       n_aero = 0
@@ -803,6 +806,8 @@
       call broadcast_scalar(restart_aero,         master_task)
       call broadcast_scalar(tr_fsd,               master_task)
       call broadcast_scalar(restart_fsd,          master_task)
+      call broadcast_scalar(tr_pan,               master_task) ! ND: adding pancake ice
+      call broadcast_scalar(restart_pan,          master_task) ! ND: adding pancake ice
       call broadcast_scalar(ncat,                 master_task)
       call broadcast_scalar(nfsd,                 master_task)
       call broadcast_scalar(nfreq,                master_task) ! ND
@@ -872,6 +877,7 @@
             restart_iso =  .false.
             restart_aero =  .false.
             restart_fsd =  .false.
+            restart_pan = .false. ! ND: adding pancake ice
             restart_age =  .false.
             restart_fy =  .false.
             restart_lvl =  .false.
@@ -1268,6 +1274,14 @@
          endif
          write(nu_diag,1010) ' tr_fsd           = ', tr_fsd,trim(tmpstr2)
          write(nu_diag,1020) ' nfsd             = ', nfsd, ' : number of floe size categories'
+
+         ! ND: adding pancake ice
+         if (tr_pan) then
+            tmpstr2 = ' : pancake ice tracer is enabled'
+         else
+            tmpstr2 = ' : pancake ice tracer is disabled'
+         endif
+         write(nu_diag,1010) ' tr_pan           = ', tr_pan,trim(tmpstr2)
 
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Horizontal Dynamics'
@@ -1790,6 +1804,7 @@
          write(nu_diag,1011) ' restart_iso      = ', restart_iso
          write(nu_diag,1011) ' restart_aero     = ', restart_aero
          write(nu_diag,1011) ' restart_fsd      = ', restart_fsd
+         write(nu_diag,1011) ' restart_pan      = ', restart_pan
 
          write(nu_diag,1021) ' n_iso            = ', n_iso
          write(nu_diag,1021) ' n_aero           = ', n_aero
@@ -1863,7 +1878,7 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_pond_in=tr_pond, &
-         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo, tr_pan_in=tr_pan) ! ND: adding pancake ice
       call icepack_init_tracer_sizes(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr, &
          nfsd_in=nfsd, n_algae_in=n_algae, n_iso_in=n_iso, n_aero_in=n_aero, &
          n_DOC_in=n_DOC, n_DON_in=n_DON, &
@@ -1919,11 +1934,11 @@
          heat_capacity   ! from icepack
 
       integer (kind=int_kind) :: ntrcr
-      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_fsd, tr_pan ! ND: adding pancake ice
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd
-      integer (kind=int_kind) :: nt_isosno, nt_isoice, nt_aero, nt_fsd
+      integer (kind=int_kind) :: nt_isosno, nt_isoice, nt_aero, nt_fsd, nt_pan ! ND: adding pancake ice
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1936,12 +1951,14 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
         tr_lvl_out=tr_lvl, tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_fsd_out=tr_fsd, &
-        tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+        tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+        tr_pan_out=tr_pan) ! ND: adding pancake ice
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
         nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
         nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
-        nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+        nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+        nt_pan_out=nt_pan) ! ND: adding pancake ice
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

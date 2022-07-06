@@ -33,6 +33,7 @@
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
                  write_restart_fsd,       read_restart_fsd, &
+                 !write_restart_pan,       read_restart_pan, & ! ND: adding pancake ice
                  write_restart_iso,       read_restart_iso, &
                  write_restart_aero,      read_restart_aero, &
                  write_restart_bgc,       read_restart_bgc,  &
@@ -46,6 +47,8 @@
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
          restart_fsd      , & ! if .true., read floe size restart file
+         restart_pan      , & ! if .true., read pancake ice restart file. 
+         ! ND: adding pancake ice STILL HAVE TO FLESH OUT THE READ CAPABILITIIES
          restart_iso      , & ! if .true., read isotope tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
          restart_zsal     , & ! if .true., read Salinity from restart file 
