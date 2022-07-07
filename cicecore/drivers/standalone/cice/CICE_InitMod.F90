@@ -90,7 +90,7 @@
       use ice_transport_driver, only: init_transport
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_iso, tr_fsd, wave_spec
+         tr_iso, tr_fsd, wave_spec, tr_pan ! ND: adding pancake ice
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -140,6 +140,7 @@
          call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
       endif
 
+      call icepack_query_tracer_flags(tr_pan_out=tr_pan) ! ND: adding pancake ice
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
@@ -263,12 +264,12 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
           tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal
+          skl_bgc, z_tracers, solve_zsal, tr_pan ! ND: adding pancake ice
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
-          nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
+          nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice, nt_pan ! ND: adding pancake ice
 
       character(len=*), parameter :: subname = '(init_restart)'
 
@@ -282,11 +283,11 @@
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
-           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+           tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, tr_pan_out=tr_pan) ! ND: adding pancake ice
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
            nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
            nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_aero_out=nt_aero, nt_fsd_out=nt_fsd, &
-           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, nt_pan_out=nt_pan) ! ND: adding pancake ice
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -391,7 +392,16 @@
             call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
          endif
       endif
-
+      ! ND: INITIALISING PANCAKE ICE
+      if (tr_pan) then
+         do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            trcrn(i,j,nt_pan,1,iblk) = trcrn(i,j,nt_fsd,1,iblk)*aicen(i,j,1,iblk)
+         enddo
+         enddo
+         enddo
+      endif
       ! isotopes
       if (tr_iso) then
          if (trim(runtype) == 'continue') restart_iso = .true.

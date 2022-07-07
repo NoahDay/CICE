@@ -201,7 +201,7 @@
               "from attenuated spectrum in ice", c1, c0,     &
               ns, f_mean_wave_dir)
       if (f_pancake_ice(1:1) /= 'x') &
-          call define_hist_field(n_pancake_ice,"pancake_ice","1",tstr2D, tcstr, &
+          call define_hist_field(n_pancake_ice,"pancake_ice","1/m",tstr2D, tcstr, &
               "pancake ice concentration",  &
               "from aice", c1, c0,     &
               ns, f_pancake_ice)
