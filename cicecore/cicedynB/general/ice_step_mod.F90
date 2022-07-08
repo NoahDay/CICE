@@ -555,7 +555,7 @@
       use m_prams_waveice, only: gravity, water_density, reldens, poisson, &
                                  gamma, Y, WIM, cmt
       use ice_flux, only: ifd, swh, mwd, ppd
-      use ice_grid, only: TLAT, TLON, HTE
+      use ice_grid, only: TLAT, TLON, HTE ! HTE: length of eastern edge of T-cell (m)
       use ice_state, only: aice_init, floediam_init
       use m_fzero
       use m_waveice, only: sub_Uncoupled, SDF_Bretschneider, fn_SpecMoment
