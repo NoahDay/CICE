@@ -397,7 +397,7 @@
          do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            trcrn(i,j,nt_pan,1,iblk) = trcrn(i,j,nt_fsd,1,iblk)*aicen(i,j,1,iblk)
+            trcrn(i,j,nt_pan,1,iblk) = c0 !trcrn(i,j,nt_fsd,1,iblk)*aicen(i,j,1,iblk)
          enddo
          enddo
          enddo
