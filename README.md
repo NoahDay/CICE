@@ -18,13 +18,6 @@ The code primarily aims to achieve:
 5. Feed this data into the icepack thermodynamic routine.
 
 Attenuation is computed as per the observation of Meylan et al. (2014) currently, there is the code in place to implement the attenuation model presented in Williams et al. (2013a,2013b), but this has not been tested within CICE6 yet.
-    
-Method:
-1. Define wave mask edge (from areal ice concentration) 
-2. Define the Bretschneider spectrum along the mask edge
-3. Calculate the attenuation coefficients from Meylan et al. (2014)
-4. Propagate waves through the sea ice
-5. Calculate the peak period and signficant wave height for each cell 
  
 For more details see https://noahday.notion.site/README-af9c753fb9ab47f2a0220bda3cfa256d.        
 
