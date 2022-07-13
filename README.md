@@ -67,7 +67,7 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
     
 - What FSD do they use?
     
-    They use the FSD routine in CICE6 (Roach et al., 2017). However it could be possible to implement a split power law to describe the FSD following Toyota et al. 2017 (as seen in Bennetts et al., 2017) for the breakup routine.
+    They use the prognostic FSD routine in CICE6 (Roach et al., 2017). However it could be possible to implement a split power law to describe the FSD following Toyota et al. 2017 (as seen in Bennetts et al., 2017) for the breakup routine.
     
 - Does it use wave direction?
     
