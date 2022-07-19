@@ -701,7 +701,7 @@
       !-----------------------------------------------------------------
 
       !-----------------------------------------------------------------
-      ! MIZ FLOE SIZE DISTRIBUTION: BASED ON OCEAN WAVES - Noah Day WIM
+      ! PROPAGATING WAVES THROUGH THE MIZ - Noah Day WIM
       !-----------------------------------------------------------------
 
          ! find cells with aice <= puny

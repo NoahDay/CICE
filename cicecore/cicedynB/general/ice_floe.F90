@@ -923,7 +923,7 @@ end subroutine init_floe_0
    	  real(kind=dbl_kind)                             :: dum_sm0, dum_sm2
    	  											  ! dummy spectral moments
 
-   	  real(kind=dbl_kind), parameter                  :: ws_tol = 1.0e-1_dbl_kind
+   	  real(kind=dbl_kind), parameter                  :: ws_tol = 1.0e-11_dbl_kind ! ND: changing tolerance from 1.0e-1
 
   !     ! spectrum passed through ice-covered ocean
         real (kind=dbl_kind), dimension(nx_block,nw_in) :: &
@@ -981,22 +981,22 @@ end subroutine init_floe_0
   !!! Calculate wavenumbers & wavelengths
 
   do lp_i=1,nw_in
-    om_in(lp_i)        = om1 + (lp_i-1)*om_0
-    T(lp_i)            = 2d0*pi/om_in(lp_i)
-    lam_wtr_in(lp_i)   = gravity*(T(lp_i)**2d0)/2d0/pi
-    k_wtr_in(lp_i)     = 2d0*pi/lam_wtr_in(lp_i)
+      om_in(lp_i)        = om1 + (lp_i-1)*om_0
+      T(lp_i)            = 2d0*pi/om_in(lp_i)
+      lam_wtr_in(lp_i)   = gravity*(T(lp_i)**2d0)/2d0/pi
+      k_wtr_in(lp_i)     = 2d0*pi/lam_wtr_in(lp_i)
    end do
 
    if (nth_in.ne.1) then
-    do lp_i=1,nth_in
-     th_in(lp_i)        = -pi/2 + (lp_i-1)*pi/(nth_in-1)
-    end do
+      do lp_i=1,nth_in
+         th_in(lp_i)        = -pi/2 + (lp_i-1)*pi/(nth_in-1)
+      end do
    else
-    th_in = 0d0
+      th_in = 0d0
    end if
 
-	 tmt(:)             = 0      ! flag to terminate routine
-	 tmt_hld(:)         = 1      ! flag to terminate routine
+	tmt(:)             = 0      ! flag to terminate routine
+	tmt_hld(:)         = 1      ! flag to terminate routine
    wspec_row(:,:)     = c0     ! a dummy vector
    wspec_row_hld(:,:) = c0     ! a dummy dummy vector
    mwd_hld(:,:)       = c0     ! another dummy dummy vector, noah day uncommented
@@ -1056,8 +1056,8 @@ end subroutine init_floe_0
              if (loc_swh(i,j).gt.c0) then
                 write(nu_diag,*) '                      -> check: swh ', loc_swh(i,j)
                 write(nu_diag,*) '                      ->        ppd ', loc_ppd(i,j)
-                dum_sm0        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,0,nu_diag)
-       	        dum_sm2        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,2,nu_diag)
+                  dum_sm0        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,0,nu_diag)
+       	         dum_sm2        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,2,nu_diag)
                 write(nu_diag,*) '                      ->        swh ', 4d0*(dum_sm0**0.5d0)
                 write(nu_diag,*) '                      ->        ppd ', &
                        											2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
@@ -1120,7 +1120,7 @@ end subroutine init_floe_0
           dum_sm0        = &
            fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
           dum_sm0        = 4d0*(dum_sm0**0.5d0)
-          if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+          !if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
            !write(nu_diag,*) '                      -> going south', 1
            !print*, '                      -> going south', 1
            wspec_row(1,:)  = wspec_row(1,:) + &
@@ -1128,26 +1128,26 @@ end subroutine init_floe_0
            mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
            mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
            tmt_hld(1)      = 0
-          endif ! ENDIF -pi/4<mwd<pi/4
-          ! if wave energy needs to be advected to the east ...
-          if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-           !write(nu_diag,*) '                      -> going east', 1
-           wspec_row(2,:) = wspec_row(2,:) + &
-           				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-           mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
-           mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
-           tmt_hld(2)     = 0
-           ! if wave energy needs to be advected to the west (wrap around vector) ...
-          elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-           !write(nu_diag,*) '                      -> going west', 1
-           wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-                                  (sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-           mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
-           mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-           tmt_hld(nx_block)     = 0
-          endif
+          !endif ! ENDIF -pi/4<mwd<pi/4
+ !         ! if wave energy needs to be advected to the east ...
+ !         if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+ !          !write(nu_diag,*) '                      -> going east', 1
+ !          wspec_row(2,:) = wspec_row(2,:) + &
+ !          				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+ !          mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
+ !          mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
+ !          tmt_hld(2)     = 0
+ !          ! if wave energy needs to be advected to the west (wrap around vector) ...
+ !         elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+ !          !write(nu_diag,*) '                      -> going west', 1
+ !          wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+ !                                 (sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+ !          mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
+ !          mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+ !          tmt_hld(nx_block)     = 0
+ !         endif
    	endif ! END IF TMASK
-
+ 
     ! RH Boundary:
       i=nx_block
       j = dum_wavemask_vec(i)
@@ -1156,7 +1156,7 @@ end subroutine init_floe_0
        dum_sm0        = &
           fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
      dum_sm0        = 4d0*(dum_sm0**0.5d0)
-           if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+ !          if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
             !write(nu_diag,*) '                      -> going south', nx_block
             wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
                                   (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
@@ -1164,24 +1164,24 @@ end subroutine init_floe_0
                                    mwd_row(nx_block)*dum_sm0
             mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
             tmt_hld(nx_block)     = 0
-           endif   ! ENDIF -pi/4<mwd<pi/4
-            ! if wave energy needs to be advected to the WEST ...
-           if (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-            !write(nu_diag,*) '                         going west', nx_block
-            wspec_row(i-1,:) = wspec_row(i-1,:) + &
-           	                         (sin(2d0*mwd_row(i))**2)*wspec_row_hld(i,:)
-            mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
-            mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
-            tmt_hld(i-1)     = 0
-            ! if wave energy needs to be advected to the EAST ...
-           elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-            !write(nu_diag,*) '                         going east', nx_block
-            wspec_row(1,:)  = wspec_row(1,:) + &
-                                   (sin(2d0*mwd_row(nx_block))**2)*wspec_row(nx_block,:)
-            mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
-            mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
-            tmt_hld(1)      = 0
-           endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_row(nx_block).gt.c0)
+ !          endif   ! ENDIF -pi/4<mwd<pi/4
+ !           ! if wave energy needs to be advected to the WEST ...
+ !          if (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+ !           !write(nu_diag,*) '                         going west', nx_block
+ !           wspec_row(i-1,:) = wspec_row(i-1,:) + &
+ !          	                         (sin(2d0*mwd_row(i))**2)*wspec_row_hld(i,:)
+ !           mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
+ !           mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
+ !           tmt_hld(i-1)     = 0
+ !           ! if wave energy needs to be advected to the EAST ...
+ !          elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+ !           !write(nu_diag,*) '                         going east', nx_block
+ !           wspec_row(1,:)  = wspec_row(1,:) + &
+ !                                  (sin(2d0*mwd_row(nx_block))**2)*wspec_row(nx_block,:)
+ !           mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
+ !           mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
+ !           tmt_hld(1)      = 0
+ !          endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_row(nx_block).gt.c0)
     endif ! END IF TMASK
 
     ! loop the inner cells...
@@ -1191,7 +1191,7 @@ end subroutine init_floe_0
         dum_sm0        = &
           fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
       dum_sm0        = 4d0*(dum_sm0**0.5d0)
-            if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+ !           if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
              ! South
              !write(nu_diag,*) '                      -> going south', i
              wspec_row(i,:) = wspec_row(i,:) + &
@@ -1199,23 +1199,23 @@ end subroutine init_floe_0
              mwd_hld(1,i)   = mwd_hld(1,i) + mwd_row(i)*dum_sm0
              mwd_hld(2,i)   = mwd_hld(2,i) + dum_sm0
              tmt_hld(i)     = 0
-            endif ! ENDIF -pi/4<mwd<pi/4
-            ! East
-            if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-             !write(nu_diag,*) '                      -> going east', i
-             wspec_row(i+1,:) = wspec_row(i+1,:) + &
-             					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-             mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
-             mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
-             tmt_hld(i+1)     = 0
-            elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-             !write(nu_diag,*) '                      -> going west', i
-             wspec_row(i-1,:) = wspec_row(i-1,:) + &
-             				(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-             mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
-             mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
-             tmt_hld(i-1)     = 0
-            end if
+ !           endif ! ENDIF -pi/4<mwd<pi/4
+ !           ! East
+ !           if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+ !            !write(nu_diag,*) '                      -> going east', i
+ !            wspec_row(i+1,:) = wspec_row(i+1,:) + &
+ !            					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+ !            mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
+ !            mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
+ !            tmt_hld(i+1)     = 0
+ !           elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+ !            !write(nu_diag,*) '                      -> going west', i
+ !            wspec_row(i-1,:) = wspec_row(i-1,:) + &
+ !            				(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+ !            mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
+ !            mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
+ !            tmt_hld(i-1)     = 0
+ !           end if
        endif ! END IF TMASK
     enddo ! i = nx_block
 
@@ -1401,28 +1401,28 @@ max_wavemask = dum_wavemask
               dum_sm0        = &
               fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
               dum_sm0        = 4d0*(dum_sm0**0.5d0)
-              if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-               wspec_row(1,:)  = wspec_row(1,:) + &
-              				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-               mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
-               mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
-               tmt_hld(1)      = 0
-              endif ! ENDIF -pi/4<mwd<pi/4
-              ! if wave energy needs to be advected to the east ...
-              if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-               wspec_row(2,:) = wspec_row(2,:) + &
-               				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-               mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
-               mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
-               tmt_hld(2)     = 0
-               ! if wave energy needs to be advected to the west (wrap around vector) ...
-              elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-               wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-                                     (sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(1,:)
-               mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
-               mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-               tmt_hld(nx_block)     = 0
-              endif ! ENDIF (tmask(2,j).and.sinmwd_row(1).lt.c0)
+!              if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+!               wspec_row(1,:)  = wspec_row(1,:) + &
+!              				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+!               mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
+!               mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
+!               tmt_hld(1)      = 0
+!              endif ! ENDIF -pi/4<mwd<pi/4
+!              ! if wave energy needs to be advected to the east ...
+!              if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+!               wspec_row(2,:) = wspec_row(2,:) + &
+!               				(sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+!               mwd_hld(1,2)   = mwd_hld(1,2) + mwd_row(1)*dum_sm0
+!               mwd_hld(2,2)   = mwd_hld(2,2) + dum_sm0
+!               tmt_hld(2)     = 0
+!               ! if wave energy needs to be advected to the west (wrap around vector) ...
+!              elseif (tmask(nx_block,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+!               wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+!                                     (sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(1,:)
+!               mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + mwd_row(1)*dum_sm0
+!               mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+!               tmt_hld(nx_block)     = 0
+              !endif ! ENDIF (tmask(2,j).and.sinmwd_row(1).lt.c0)
            endif ! END IF TMASK
         endif ! j > 0
        ! RH Boundary:
@@ -1434,30 +1434,30 @@ max_wavemask = dum_wavemask
                 dum_sm0        = &
                   fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
               dum_sm0        = 4d0*(dum_sm0**0.5d0)
-                if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-                     wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-                                          (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
-                     mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
-                                           mwd_row(nx_block)*dum_sm0
-                     mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-                     tmt_hld(nx_block)     = 0
-                endif ! ENDIF -pi/4<mwd<pi/4
-                ! if wave energy needs to be advected to the west ...
-                if (tmask(nx_block-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-                     wspec_row(nx_block-1,:) = wspec_row(nx_block-1,:) + &
-                   	                         (sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
-                     mwd_hld(1,nx_block-1)   = mwd_hld(1,nx_block-1) + &
-                   							  mwd_row(nx_block)*dum_sm0
-                     mwd_hld(2,nx_block-1)   = mwd_hld(1,nx_block-1) + dum_sm0
-                     tmt_hld(nx_block-1)     = 0
-                    ! if wave energy needs to be advected to the east ...
-                elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-                     wspec_row(1,:) = wspec_row(1,:) + &
-                     				(sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
-                     mwd_hld(1,1)   = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
-                     mwd_hld(2,1)   = mwd_hld(2,1) + dum_sm0
-                     tmt_hld(1)     = 0
-               endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_hld(nx_block).gt.c0)
+!                if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+!                     wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+!                                          (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
+!                     mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
+!                                           mwd_row(nx_block)*dum_sm0
+!                     mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+!                     tmt_hld(nx_block)     = 0
+!                endif ! ENDIF -pi/4<mwd<pi/4
+!                ! if wave energy needs to be advected to the west ...
+!                if (tmask(nx_block-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+!                     wspec_row(nx_block-1,:) = wspec_row(nx_block-1,:) + &
+!                   	                         (sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
+!                     mwd_hld(1,nx_block-1)   = mwd_hld(1,nx_block-1) + &
+!                   							  mwd_row(nx_block)*dum_sm0
+!                     mwd_hld(2,nx_block-1)   = mwd_hld(1,nx_block-1) + dum_sm0
+!                     tmt_hld(nx_block-1)     = 0
+!                    ! if wave energy needs to be advected to the east ...
+!                elseif (tmask(1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+!                     wspec_row(1,:) = wspec_row(1,:) + &
+!                     				(sin(2d0*mwd_row(nx_block))**2)*wspec_row_hld(nx_block,:)
+!                     mwd_hld(1,1)   = mwd_hld(1,1) + mwd_row(nx_block)*dum_sm0
+!                     mwd_hld(2,1)   = mwd_hld(2,1) + dum_sm0
+!                     tmt_hld(1)     = 0
+               !endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_hld(nx_block).gt.c0)
            endif ! ENDIF TMASK
         endif ! j > 0
        ! loop the inner cells...
@@ -1468,32 +1468,32 @@ max_wavemask = dum_wavemask
                      dum_sm0        = &
                       fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
                     dum_sm0        = 4d0*(dum_sm0**0.5d0)
-                     if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
+!                     if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
                          ! South
                           wspec_row(i,:) = wspec_row(i,:) + &
                          				(1d0-sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
                           mwd_hld(1,i)   = mwd_hld(1,i) + mwd_row(i)*dum_sm0
                           mwd_hld(2,i)   = mwd_hld(2,i) + dum_sm0
                           tmt_hld(i)     = 0
-                     endif ! ENDIF -pi/4<mwd<pi/4
-                     ! East
-                     if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
-                          wspec_row(i+1,:) = wspec_row(i+1,:) + &
-                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-                          mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
-                          mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
-                          tmt_hld(i+1)     = 0
-                     elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
-                          wspec_row(i-1,:) = wspec_row(i-1,:) + &
-                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
-                          mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
-                          mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
-                          tmt_hld(i-1)     = 0
-                     endif ! ENDIF (tmask(i+1,j).and.sinmwd_row(i).lt.c0)
+!                     endif ! ENDIF -pi/4<mwd<pi/4
+!                     ! East
+!                     if (tmask(i+1,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
+!                          wspec_row(i+1,:) = wspec_row(i+1,:) + &
+!                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+!                          mwd_hld(1,i+1)   = mwd_hld(1,i+1) + mwd_row(i)*dum_sm0
+!                          mwd_hld(2,i+1)   = mwd_hld(2,i+1) + dum_sm0
+!                          tmt_hld(i+1)     = 0
+!                     elseif (tmask(i-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
+!                          wspec_row(i-1,:) = wspec_row(i-1,:) + &
+!                          					(sin(2d0*mwd_row(i))**2d0)*wspec_row_hld(i,:)
+!                          mwd_hld(1,i-1)   = mwd_hld(1,i-1) + mwd_row(i)*dum_sm0
+!                          mwd_hld(2,i-1)   = mwd_hld(2,i-1) + dum_sm0
+!                          tmt_hld(i-1)     = 0
+!                     endif ! ENDIF (tmask(i+1,j).and.sinmwd_row(i).lt.c0)
               endif ! ENDIF TMASK
           endif !j > 0
        end do ! ENDDO i=2,nx_block-1
-
+!
       if (cmt.ne.0) then
        write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
        write(nu_diag,*) '                      -> update mean values'!, j

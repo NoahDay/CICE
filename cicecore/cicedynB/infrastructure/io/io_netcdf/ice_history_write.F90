@@ -44,7 +44,7 @@
       subroutine ice_write_hist (ns)
 
       use ice_kinds_mod
-      use ice_arrays_column, only: hin_max, floe_rad_c
+      use ice_arrays_column, only: hin_max, floe_rad_c, floe_binwidth
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
@@ -75,7 +75,7 @@
 
       integer (kind=int_kind) :: i,k,ic,n,nn, &
          ncid,status,imtid,jmtid,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
-         nvertexid,ivertex,kmtida,iflag, fmtid
+         nvertexid,ivertex,kmtida,iflag, fmtid, wdhid ! ND: adding wdhid
       integer (kind=int_kind), dimension(3) :: dimid
       integer (kind=int_kind), dimension(4) :: dimidz
       integer (kind=int_kind), dimension(5) :: dimidcz
@@ -293,6 +293,9 @@
       var_nz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
       var_nz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
       var_nz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
+      !var_nz(7) = coord_attributes('WFSD', 'category floe size (width)', 'm')
+    
+
 
       !-----------------------------------------------------------------
       ! define information for optional time-invariant variables
@@ -388,13 +391,14 @@
           endif          
         enddo
 
-        ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
+        ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD, WFSD)
           dimidex(1)=cmtid
           dimidex(2)=kmtidi
           dimidex(3)=kmtids
           dimidex(4)=kmtidb
           dimidex(5)=kmtida
           dimidex(6)=fmtid
+          !dimidex(7)=wdhid ! ND: adding wdhid for floe bin width
         
         do i = 1, nvarz
            if (igrdz(i)) then
@@ -1170,7 +1174,9 @@
                CASE ('NCAT')
                  status = nf90_put_var(ncid,varid,hin_max(1:ncat_hist))
                CASE ('NFSD')
-                 status = nf90_put_var(ncid,varid,floe_rad_c(1:nfsd_hist))
+                 status = nf90_put_var(ncid,varid,floe_rad_c(1:nfsd_hist)) 
+               !CASE ('WFSD') ! ND: floe binwidth
+               !  status = nf90_put_var(ncid,varid,floe_binwidth(1:nfsd_hist))
                CASE ('VGRDi') ! index - needed for Met Office analysis code
                  status = nf90_put_var(ncid,varid,(/(k, k=1,nzilyr)/))
                CASE ('VGRDs') ! index - needed for Met Office analysis code
