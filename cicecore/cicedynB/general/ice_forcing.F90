@@ -5601,21 +5601,21 @@ do lp=1,N_lon
       if (dum_swh(lp+ind_lon-N_lon).gt.puny.and.dum_fp(lp+ind_lon-N_lon).gt.puny) then
          swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon-N_lon)
          ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon-N_lon)
-         if (pi*dum_mwd(lp+ind_lon-N_lon)/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon)/c180.lt.3*pi/2) then
+         !if (pi*dum_mwd(lp+ind_lon-N_lon)/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon)/c180.lt.3*pi/2) then
            mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
-         else
-           mwd(i,dum_wavemask,j) = c0
-         end if
+        ! else
+        !   mwd(i,dum_wavemask,j) = c0
+        ! end if
       endif
   else ! feed the horizontally translated data into CICE
     if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
        swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon)
        ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon)
-       if (pi*dum_mwd(lp+ind_lon)/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon)/c180.lt.4*pi/3) then
+       !if (pi*dum_mwd(lp+ind_lon)/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon)/c180.lt.4*pi/3) then
          mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon)/c180
-       else
-         mwd(i,dum_wavemask,j) = c0
-       end if
+       !else
+      !   mwd(i,dum_wavemask,j) = c0
+       !end if
     endif
   end if ! lp+ind_lon
   i = i + 1 ! tick up until i = ihi

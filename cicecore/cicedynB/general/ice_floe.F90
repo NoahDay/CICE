@@ -213,7 +213,7 @@ end subroutine init_floe_0
 !     ! counter
       integer :: lp_i, lp_j
 !     ! points in freq & angular domains
-      integer, parameter          :: nw_in = 16, nth_in = 1 !ND: nw_in=31, nth_in=1 
+      integer, parameter          :: nw_in = 16, nth_in = 1 !ND: nw_in=31, nth_in=1
       !integer :: nw_in
 !     ! max floe size param
       real(kind=dbl_kind)                :: D1
@@ -292,7 +292,7 @@ end subroutine init_floe_0
 	 endif
 
 
-! Set frequency bin number equal to CICE's from ice_in      
+! Set frequency bin number equal to CICE's from ice_in
    ! nw_in = nfreq
    !!! Calculate wavenumbers & wavelengths
 
@@ -317,7 +317,7 @@ end subroutine init_floe_0
        wspec_row_hld(:,:) = c0     ! a dummy dummy vector
        mwd_hld(:,:)       = c0     ! another dummy dummy vector, noah day uncommented
        !loc_mwd(:,:)       = c0     ! another dummy dummy vector
-   	   S_init_in(:)       = c0
+      S_init_in(:)       = c0
 
        !!! Begin at wavemask (only difference is initialisation)
        if (cmt.ne.0) then
@@ -358,7 +358,7 @@ end subroutine init_floe_0
          endif  ! END IF h<tolh OR c<tolc
         else ! IF there are waves:
          do lp_i=1,nw_in
-          S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j))
+          S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j), loc_mwd(i,j))
           wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
          end do
          ! want consistency between SWH definitions:
@@ -573,7 +573,7 @@ end subroutine init_floe_0
      write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
     endif
 
-    do j=dum_wavemask-1,2,-1
+    do j=dum_wavemask-1,1,-1
      if (cmt.ne.0) then
       write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooooooooo'
       write(nu_diag,*) '                      -> j=', j
@@ -1013,6 +1013,8 @@ end subroutine init_floe_0
 
     !     loc_mwd(:,j)    = pi/6d0   !    initialise, noah day uncommented
 
+
+
    ! A0. initialise with: Bretschneider
    do i=1,nx_block
      j = dum_wavemask_vec(i)
@@ -1046,8 +1048,9 @@ end subroutine init_floe_0
              endif  ! END IF h<tolh OR c<tolc
            else ! IF there are waves:
              do lp_i=1,nw_in
-              S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j)) ! m^2s/rad
-              wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
+               ! ND: Initiailise the spectrum.
+               S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j),loc_mwd(i,j)) ! m^2s/rad
+               wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
              end do
              ! want consistency between SWH definitions:
              !if (i.eq.1.and.cmt.ne.0) then
@@ -1109,6 +1112,11 @@ end subroutine init_floe_0
 
  !print*, 'doing wave directions on wavemask loop'
 
+! ND: end of loop ------------------------------------------------------------------------------------------
+
+
+
+
  ! A2. Redistribute energy according to mean directions
   ! LH Boundary:
    i=1
@@ -1147,7 +1155,7 @@ end subroutine init_floe_0
  !          tmt_hld(nx_block)     = 0
  !         endif
    	endif ! END IF TMASK
- 
+
     ! RH Boundary:
       i=nx_block
       j = dum_wavemask_vec(i)
@@ -1224,6 +1232,10 @@ end subroutine init_floe_0
      write(nu_diag,*) '                      -> update mean values', dum_wavemask_vec
      write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
     endif
+! ND: end of loop ------------------------------------------------------------------------------------------
+
+
+
 
     ! A3. Calculate mean parameters
   do i=1,nx_block
@@ -1258,6 +1270,11 @@ end subroutine init_floe_0
             endif
        endif ! ENDIF tmask(i,j)
   enddo ! ENDDO i=1,nblock
+
+! ND: end of loop ------------------------------------------------------------------------------------------
+
+
+
 
   wspec_row_hld(:,:) = c0     ! reset the dummy dummy vector
   mwd_hld(:,:)       = c0     ! ditto
@@ -1317,9 +1334,11 @@ max_wavemask = dum_wavemask
                                   if (cmt.ne.0) then
                                       if (vfice(i,j).lt.tolh) then
                                         write(nu_diag,*) '                       -> no ice in this cell: h<', tolh
+                                        write(nu_diag,*) '                       -> coords', i,j
                                       endif
                                       if (afice(i,j).lt.tolice) then
                                         write(nu_diag,*) '                       -> no ice in this cell: c<', tolice
+                                        write(nu_diag,*) '                       -> coords', i,j
                                       endif
                                       !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
                                   endif ! END IF COMMENT
@@ -1398,15 +1417,16 @@ max_wavemask = dum_wavemask
        ! if the cell isn't land ...
        if (j.gt.0) then
            if (tmask(1,j).and.tmt(1).ne.1) then
-              dum_sm0        = &
-              fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
-              dum_sm0        = 4d0*(dum_sm0**0.5d0)
+               dum_sm0        = &
+               fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
+               dum_sm0        = 4d0*(dum_sm0**0.5d0)
 !              if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-!               wspec_row(1,:)  = wspec_row(1,:) + &
-!              				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
-!               mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
-!               mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
-!               tmt_hld(1)      = 0
+               ! South
+               wspec_row(1,:)  = wspec_row(1,:) + &
+              				(1d0-sin(2d0*mwd_row(1))**2d0)*wspec_row_hld(1,:)
+               mwd_hld(1,1)    = mwd_hld(1,1) + mwd_row(1)*dum_sm0
+               mwd_hld(2,1)    = mwd_hld(2,1) + dum_sm0
+               tmt_hld(1)      = 0
 !              endif ! ENDIF -pi/4<mwd<pi/4
 !              ! if wave energy needs to be advected to the east ...
 !              if (tmask(2,j).and.mwd_row(i).gt.pi/2d0.and.mwd_row(i).lt.pi) then
@@ -1435,12 +1455,13 @@ max_wavemask = dum_wavemask
                   fn_SpecMoment(wspec_row_hld(i,:),nw_in,nth_in,om_in,th_in,0,nu_diag)
               dum_sm0        = 4d0*(dum_sm0**0.5d0)
 !                if (mwd_row(i).gt.3d0*pi/4d0.and.mwd_row(i).lt.5d0*pi/4d0) then
-!                     wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
-!                                          (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
-!                     mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
-!                                           mwd_row(nx_block)*dum_sm0
-!                     mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
-!                     tmt_hld(nx_block)     = 0
+                     ! South
+                     wspec_row(nx_block,:) = wspec_row(nx_block,:) + &
+                                          (1d0-sin(2d0*mwd_row(nx_block))**2d0)*wspec_row_hld(nx_block,:)
+                     mwd_hld(1,nx_block)   = mwd_hld(1,nx_block) + &
+                                           mwd_row(nx_block)*dum_sm0
+                     mwd_hld(2,nx_block)   = mwd_hld(2,nx_block) + dum_sm0
+                     tmt_hld(nx_block)     = 0
 !                endif ! ENDIF -pi/4<mwd<pi/4
 !                ! if wave energy needs to be advected to the west ...
 !                if (tmask(nx_block-1,j).and.mwd_row(i).gt.pi.and.mwd_row(i).lt.3*pi/2d0) then
@@ -1460,6 +1481,7 @@ max_wavemask = dum_wavemask
                !endif ! ENDIF (tmask(nx_block-1,j).and.sinmwd_hld(nx_block).gt.c0)
            endif ! ENDIF TMASK
         endif ! j > 0
+
        ! loop the inner cells...
        do i=2,nx_block-1
          j = dum_wavemask_vec(i) - jj!dum_wavemask_vec(i) - (dum_wavemask_vec(i) - jj) ! wavemask - (wavemask-j) = j
@@ -1493,7 +1515,7 @@ max_wavemask = dum_wavemask
               endif ! ENDIF TMASK
           endif !j > 0
        end do ! ENDDO i=2,nx_block-1
-!
+
       if (cmt.ne.0) then
        write(nu_diag,*) 'oooooooooooooooooooooooooooooooooooooooooooo'
        write(nu_diag,*) '                      -> update mean values'!, j
@@ -1544,7 +1566,11 @@ max_wavemask = dum_wavemask
        mwd_hld(:,:)       = c0     ! ditto
        tmt_hld(:)         = 1
 
-enddo ! END do j=dum_wavemask-1,2,-1
+enddo ! END do j = dum_wavemask-1,2,-1
+! ND: end of loop ------------------------------------------------------------------------------------------
+
+
+
 
 
 if (cmt.ne.0) then
