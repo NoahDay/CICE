@@ -1,8 +1,6 @@
 tr_fsd       = .true.
 restart_fsd  = .false.
-tr_pan       = .true.
-restart_pan  = .false.
-nfsd = 16
+nfsd = 12
 wave_spec_type = 'profile'
 nfreq = 31
 ice_ic         = '/Users/noahday/GitHub/cice-dirs/input/CICE_data/ic/access-om2_1deg/iced.2019-01-01-00000.nc'
@@ -27,3 +25,7 @@ atm_data_dir    = '/Users/noahday/GitHub/cice-dirs/input/CICE_data/forcing/acces
 ocn_data_format = 'bin'
 ocn_data_dir    = '/Users/noahday/GitHub/cice-dirs/input/CICE_data/forcing/access-om2_1deg/ocean'
 oceanmixed_file = 'ocean_output2017.nc'
+ns_boundary_type  = 'tripole'
+ocn_data_format = 'nc'
+nilyr        = 4
+ocn_data_format = 'nc'
