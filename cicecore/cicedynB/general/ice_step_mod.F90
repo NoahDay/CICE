@@ -555,7 +555,7 @@
       use m_prams_waveice, only: gravity, water_density, reldens, poisson, &
                                  gamma, Y, WIM, cmt
       use ice_flux, only: ifd, swh, mwd, ppd
-      use ice_grid, only: TLAT, TLON, HTE ! HTE: length of eastern edge of T-cell (m)
+      use ice_grid, only: TLAT, TLON, HTE
       use ice_state, only: aice_init, floediam_init
       use m_fzero
       use m_waveice, only: sub_Uncoupled, SDF_Bretschneider, fn_SpecMoment
@@ -599,7 +599,7 @@
       real(kind=dbl_kind) :: hice_init, Length_cell, aice_in!conc_coeff, Dav, Lcell, m0, m2, ice_thick
       real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka ! work for calculating mean FSD
       real (kind=dbl_kind), dimension(nx_block,ny_block,nfreq,nblocks) :: wave_spec_blk ! wave spectrum in m^2s/rad
-      
+
       real(kind=dbl_kind), dimension(nfreq)           :: om ! freqs, rad/s
       real(kind=dbl_kind)                  :: fmin, fmax
                                                   ! freq min/max, 1/s
@@ -701,7 +701,7 @@
       !-----------------------------------------------------------------
 
       !-----------------------------------------------------------------
-      ! PROPAGATING WAVES THROUGH THE MIZ - Noah Day WIM
+      ! MIZ FLOE SIZE DISTRIBUTION: BASED ON OCEAN WAVES - Noah Day WIM
       !-----------------------------------------------------------------
 
          ! find cells with aice <= puny
@@ -755,13 +755,13 @@
                            icells = icells + 1
                            indxi(icells) = ii
                            indxj(icells) = jj
-                           if ((jj.lt.150).and.(jj.gt.-1)) then
+                           if ((jj.lt.150).and.(jj.gt.0)) then
                             wavemask_dyn_vec(ii) = jj
                            endif
                           endif
                         end do
                       end do
-
+                      ! ND: FIX THIS FOR DIFFERENT NUMBER OF HALO CELLS
                       wavemask_dyn_vec(1) = wavemask_dyn_vec(2)
                       wavemask_dyn_vec(nx_block) = wavemask_dyn_vec(nx_block-1)
                       ! Initialise the dummy latitude location vector
@@ -774,6 +774,7 @@
                       end do
 
                       ! Initialise wave spectrum per longitude (equivalent to cell for 1 degree grid)
+                      write(nu_diag,*) '         -> Calling init_wave_spec: block number is         ', iblk
                       call init_wave_spec_long(wavemask_dyn_vec,ww3_swh(:,:), &
                             ww3_fp(:,:),ww3_dir(:,:),size(ww3_lon),size(ww3_lat),iblk)
 
@@ -863,7 +864,7 @@
                   enddo
                enddo
             enddo
-             
+
              if (WIM_LONG.eq.1) then ! Propagate waves per cell
                 !write(nu_diag,*) 'Calling increment_floe_long..............'
                 call increment_floe_long (nx_block, ny_block, & ! nx_block, ny_block
@@ -901,7 +902,7 @@
                   enddo
                enddo
             enddo
-             
+
          else !!! Wave-ice interaction code OFF
 
              write(nu_diag,*) '----------------------------------------------------'

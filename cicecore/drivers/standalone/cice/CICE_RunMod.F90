@@ -58,7 +58,7 @@
 
       use ice_calendar, only: istep, istep1, dt, stop_now, advance_timestep, mmonth,mday,myear,idate ! Noah Day WIM, adding mmonth
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
-          get_wave_spec, check ! Noah Day WIM adding check
+          get_wave_spec, init_wave_block, check ! Noah Day WIM adding init_wave_block and scheck
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           fiso_default, faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
@@ -136,7 +136,8 @@ if (WIM.eq.1) then
        allocate(ww3_fp(N_lon,N_lat))
        allocate(ww3_dir(N_lon,N_lat))
     endif
-
+    ! Distribute the wave data across the blocks
+    !call init_wave_block(ww3_swh,ww3_fp,ww3_dir,N_lon,N_lat)
     !nww3=1-nww3_dt
     !nww3=1-nww3_dt
     !nmth
@@ -405,7 +406,8 @@ if (WIM.eq.1) then
          if (my_task == master_task) then
            write(nu_diag,*) '1st check done'
          endif
-        varname = 'LAT'! ND: commenting out 'TLAT'
+        !varname = 'LAT'! ND: commenting out 'TLAT'
+        varname = 'TLAT'
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
          if (my_task == master_task) then
            write (nu_diag,*) ' inq is done'
@@ -416,12 +418,13 @@ if (WIM.eq.1) then
          if (my_task == master_task) then
            write(nu_diag,*) 'ND: N_lat is:', N_lat
          endif
-         !N_lat = 384 ! grid resolution
-         N_lat = 300
+         N_lat = 384 ! grid resolution
+         !N_lat = 300
          allocate(ww3_lat(1,N_lat)) ! noah day this used to be (N_lat,1)
          write(nu_diag,*) 'Number of dimensions', numDims
          write(nu_diag,*) 'lat done', N_lat
-         varname = 'LON'! ND: commenting out 'TLON'
+         !varname = 'LON'! ND: commenting out 'TLON'
+         varname = 'TLON'
          call check( nf90_get_var(ncid, varid, ww3_lat) )
          !write(nu_diag,*) ' ww3_lat(1,N_lat) : ', ww3_lat(1,N_lat)
          !write(nu_diag,*) ' ww3_lat(N_lat,1) : ', ww3_lat(N_lat,1)
@@ -454,7 +457,7 @@ if (WIM.eq.1) then
          call check( nf90_get_var(ncid, varid, ww3_fp_full) )
          ww3_fp_full = eps3*ww3_fp_full
          !write(nu_diag,*) 'fp done', SHAPE(ww3_fp_full)
-         varname = 'dir'
+         varname = 'dir' ! True north degrees, wind direction 
   	   allocate(ww3_dir_full(N_lon,N_lat,N_tm))
   	   call check( nf90_inq_varid(ncid, trim(varname), varid) )
   	   call check( nf90_get_var(ncid, varid, ww3_dir_full) )

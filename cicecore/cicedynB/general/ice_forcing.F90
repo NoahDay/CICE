@@ -51,7 +51,8 @@
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff, init_wave_spec, &
-                init_wave_spec_usr, init_wave_spec_init, check, init_wave_spec_long
+                init_wave_spec_usr, init_wave_spec_init, check, init_wave_spec_long, &
+                init_wave_block
                 ! Noah Day WIM, adding init_wave_spec, init_wave_spec_usr, init_wave_spec_init, check
 
       integer (kind=int_kind), public :: &
@@ -5877,6 +5878,7 @@ call ice_HaloUpdate (mwd,             halo_info, &
         use ice_blocks, only: block, get_block, nx_block, ny_block
         use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
         use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+        use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global ! Noah Day WIM
 
   !
   ! !INPUT/OUTPUT PARAMETERS:
@@ -5935,6 +5937,9 @@ call ice_HaloUpdate (mwd,             halo_info, &
     write(nu_diag,*) ' nblocks: ', nblocks
     write(nu_diag,*) ' ind_lon: ', ind_lon
     write(nu_diag,*) ' nx_block: ', nx_block
+    write(nu_diag,*) ' ilo: ', ilo
+    write(nu_diag,*) ' ihi: ', ihi
+    write(nu_diag,*) ' block number: ', iblk
     !write(nu_diag,*) ' dum_swh: ', dum_swh
     write(nu_diag,*) ' swh: '!, SHAPE(swh(:,dum_wavemask,:))
     write(nu_diag,*) ' N_lon: ', N_lon
@@ -5942,43 +5947,68 @@ call ice_HaloUpdate (mwd,             halo_info, &
     write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
     write(nu_diag,*) '<-------------------------------------------------->'
   end if
-  ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
+  ind_lon = 0!ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
 
-  i = ilo ! index for nx_block
-  j = 1 ! block index
+  !i = ilo ! index for nx_block
+  !j = 1 ! block index
+ !do lp_b=1,nblocks
 
-  do lp=1,N_lon
-      if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
-        if (dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny) then
-           swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i))
-           ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i))
-           if (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
-             mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
-           elseif (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
-             mwd(i,dum_wavemask_vec(i),j) = pi
-           else
-             mwd(i,dum_wavemask_vec(i),j) = c0
-           end if
-        endif
-    else ! feed the horizontally translated data into CICE
-      if (dum_swh(lp+ind_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon,dum_wavemask_vec(i)).gt.puny) then
-         swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon,dum_wavemask_vec(i))
-         ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon,dum_wavemask_vec(i))
-         if (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
-           mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
-         elseif (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
-           mwd(i,dum_wavemask_vec(i),j) = pi
-         else
-           mwd(i,dum_wavemask_vec(i),j) = c0
-         end if
+
+ lp_b = iblk ! should be iblk
+  do lp_i=ilo,ihi
+    !i = lp_i + (lp_b-1)*ihi
+    i = lp_i-1 + (lp_b-1)*(ihi-1) ! We want i to loop from 1,N_lon
+    if (dum_wavemask_vec(lp_i).lt.1) then
+      j = 1
+    else
+      j = dum_wavemask_vec(lp_i)
+    endif
+    !write(nu_diag,*) ' nx_block:          ', nx_block
+    !write(nu_diag,*) ' LON [i] loop:', i
+    !write(nu_diag,*) ' lp_i loop:', lp_i
+    !write(nu_diag,*) ' WW3 LON loop:', ind_lon_ww3(lp)
+    !  if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
+    !    if (dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny.and.dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i)).gt.puny) then
+    !       swh(i,dum_wavemask_vec(i),j) = dum_swh(lp+ind_lon-N_lon,dum_wavemask_vec(i))
+    !       ppd(i,dum_wavemask_vec(i),j) = c1/dum_fp(lp+ind_lon-N_lon,dum_wavemask_vec(i))
+    !       !if (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
+    !         !mwd(i,dum_wavemask_vec(i),j) = pi!*
+    !         mwd(i,dum_wavemask_vec(i),j) = dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
+    !       !elseif (pi*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
+    !         !mwd(i,dum_wavemask_vec(i),j) = pi
+    !       !else
+    !         !mwd(i,dum_wavemask_vec(i),j) = c0
+    !       !end if
+    !    endif
+    !else ! feed the horizontally translated data into CICE
+      if (dum_swh(i,j).gt.puny.and.dum_fp(i,j).gt.puny) then
+         swh(lp_i,j,lp_b) = dum_swh(i,j)
+         ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
+         !write(nu_diag,*) ' WW3 swh:', dum_swh(lp+ind_lon,dum_wavemask_vec(i))
+         !write(nu_diag,*) ' WW3 swh [m]:', dum_swh(i,j)
+         !if (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.lt.pi/2) then
+        !   mwd(i,dum_wavemask_vec(i),j) = pi!*dum_mwd(lp+ind_lon-N_lon,dum_wavemask_vec(i))/c180
+         !elseif (pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(i))/c180.gt.3*pi/2) then
+        !   mwd(i,dum_wavemask_vec(i),j) = pi
+        ! else
+        !   mwd(i,dum_wavemask_vec(i),j) = c0
+         !end if
+         mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
+         !write(nu_diag,*) ' WW3 mwd [rad]:', dum_mwd(i,j)*c2*pi/c360
+       else
+         !write(nu_diag,*) ' COORDS DID NOT WORK [I,J,B]:', lp_i, j, lp_b
+         !write(nu_diag,*) '     WW3 swh [m]:', dum_swh(i,j)
+         !write(nu_diag,*) '     WW3 ppd [s]:', c1/dum_fp(i,j)
+         !write(nu_diag,*) '     WW3 mwd [rad]:', dum_mwd(i,j)*c2*pi/c360
       endif
-    end if ! lp+ind_lon
-    i = i + 1 ! tick up until i = ihi
-    if (mod(i,ihi+1).eq.0) then
-      i = ilo ! reset nx_block index, 1 is a ghost cell
-      j = j + 1 ! set for the next block
-    end if
-  end do
+    !endif ! lp+ind_lon
+    !i = i + 1 ! tick up until i = ihi
+    !if (mod(i,ihi+1).eq.0) then
+  !    i = ilo ! reset nx_block index, 1 is a ghost cell
+!      j = j + 1 ! set for the next block
+!    end if
+  end do ! wave mask
+!enddo ! block
 
   call ice_HaloUpdate (swh,             halo_info, &
                        field_loc_center,  field_type_scalar)
@@ -5988,6 +6018,128 @@ call ice_HaloUpdate (mwd,             halo_info, &
                        field_loc_center,  field_type_scalar)
 
   end subroutine init_wave_spec_long
+
+
+  !=======================================================================
+  !BOP
+  !
+  ! !ROUTINE: init_wave_block
+  !
+  ! !DESCRIPTION:
+  !
+  !  Distribute the read in wave statistics to each block
+  !
+  ! !REVISION HISTORY:
+  !
+  ! author: N Day, U Adelaide
+  !
+  ! !INTERFACE:
+  !
+        subroutine init_wave_block(dum_swh,dum_fp,dum_mwd,N_lon,N_lat)
+  !
+  ! !USES:
+  !
+        use ice_flux, only: swh, ppd, mwd
+        use m_prams_waveice, only: pi, ww3_lat, ww3_lon, ww3_dir, cmt, &
+          ww3_swh_blk, ww3_fp_blk, ww3_dir_blk
+        use netcdf
+        use ice_grid, only: tlon, tlat
+        use icepack_parameters, only: puny ! Noah Day WIM
+        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
+        use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+        use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global ! Noah Day WIM
+
+  !
+  ! !INPUT/OUTPUT PARAMETERS:
+  !
+  !
+  !EOP
+  !
+  	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+      !integer (kind=int_kind)   		    :: dum_wavemask
+      integer, intent(in)                               :: N_lon, N_lat
+  	  real(kind=dbl_kind), dimension(N_lon,N_lat), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+  	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3 !, dumlatloc
+  !	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+  	  integer                               :: ind_lon
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         i, j, len               ! horizontal indices
+
+
+       type (block) :: &
+          this_block         ! block information for current block
+
+      ! Allocate the block variables
+      allocate(ww3_swh_blk(nx_block,ny_block,nblocks))
+      allocate(ww3_fp_blk(nx_block,ny_block,nblocks))
+      allocate(ww3_dir_blk(nx_block,ny_block,nblocks))
+
+  	  do lp_b=1,nblocks
+         do lp_i=1,nx_block
+         do lp_j=1,ny_block
+          ww3_swh_blk(lp_i,lp_j,lp_b) = c0
+          ww3_fp_blk(lp_i,lp_j,lp_b) = c0
+          ww3_dir_blk(lp_i,lp_j,lp_b) = c0
+         enddo
+         enddo
+        enddo
+
+  !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+
+  ! Initialise the indices for the full data
+  i = 1
+  j = 1
+  do lp_b = 1,nblocks
+
+    this_block = get_block(blocks_ice(lp_b),lp_b)
+    ilo = this_block%ilo
+    ihi = this_block%ihi
+    jlo = this_block%jlo
+    jhi = this_block%jhi
+
+    !if (cmt.ne.0) then
+      write(nu_diag,*) ' <---------------  block info: -------------------->'
+      write(nu_diag,*) ' nblocks: ', nblocks
+      write(nu_diag,*) ' ind_lon: ', ind_lon
+      write(nu_diag,*) ' nx_block: ', nx_block
+      write(nu_diag,*) ' ilo: ', ilo
+      write(nu_diag,*) ' ihi: ', ihi
+      !write(nu_diag,*) ' dum_swh: ', dum_swh
+      write(nu_diag,*) ' swh: '!, SHAPE(swh(:,dum_wavemask,:))
+      write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+      write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+      write(nu_diag,*) '<-------------------------------------------------->'
+    !end if
+
+    ! Loop over the blocks to distribute the map
+    do lp_i = ilo,ihi
+      do lp_j = jlo,jhi
+        i = lp_i - 1 ! Start at 1
+        j = lp_j
+        ww3_swh_blk(lp_i,lp_j,lp_b) = dum_swh(i,j)
+        ww3_fp_blk(lp_i,lp_j,lp_b) = dum_fp(i,j)
+        ww3_dir_blk(lp_i,lp_j,lp_b) = dum_mwd(i,j)
+      enddo
+    enddo
+
+
+
+  enddo ! lp_b
+
+  call ice_HaloUpdate (ww3_swh_blk,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ww3_fp_blk,             halo_info, &
+                      field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ww3_dir_blk,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+
+  end subroutine init_wave_block
 
 
 !=======================================================================

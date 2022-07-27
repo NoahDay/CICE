@@ -358,7 +358,7 @@ end subroutine init_floe_0
          endif  ! END IF h<tolh OR c<tolc
         else ! IF there are waves:
          do lp_i=1,nw_in
-          S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j), loc_mwd(i,j))
+          S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j))
           wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
          end do
          ! want consistency between SWH definitions:
@@ -905,7 +905,7 @@ end subroutine init_floe_0
   !     ! cell length
   !      real(kind=dbl_kind), parameter     :: Lcell = 25*1000d0
   !     ! open ocean wave params
-        real(kind=dbl_kind), parameter                  :: fmin = 1d0/16d0, fmax = 1d0/6d0
+        real(kind=dbl_kind), parameter                  :: fmin = 1d0/1000d0, fmax = 1d0 ! ND: changing from 1/16, 1/6
                                                     ! freq min/max
         real(kind=dbl_kind), parameter                  :: om1=2*pi*fmin, om2=2*pi*fmax
                                                     ! ang freqs
@@ -945,6 +945,8 @@ end subroutine init_floe_0
    ! Noah Day 4/11/21
         real (kind=dbl_kind), dimension(nx_block,ny_block,nw_in), intent(inout) :: &
           wave_spec_blk ! Noah Day 4/11/21, wave spectrum for the block m^2s/rad
+        real(kind=dbl_kind)                :: int_d ! Integral of the directional spectrum
+
 
         integer, dimension(nx_block)                    :: tmt, tmt_hld ! WIM termination flag
 
@@ -1048,10 +1050,16 @@ end subroutine init_floe_0
              endif  ! END IF h<tolh OR c<tolc
            else ! IF there are waves:
              do lp_i=1,nw_in
-               ! ND: Initiailise the spectrum.
-               S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j),loc_mwd(i,j)) ! m^2s/rad
-               wave_spec_blk(i,j,lp_i) = S_init_in(lp_i) ! Noah Day 4/11/21
+               ! ND: Initiailise the spectrum, S(omega)
+               S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j)) ! m^2s/rad
              end do
+             ! ND: Initialise and integrate the directional spectrum, D(theta)
+             int_d = dir_spec_integral(S_init_in, loc_mwd(i,j), nu_diag) ! 1 if WIM_DIR = 0 loc_mwd(i,j)
+
+             do lp_i=1,nw_in
+               ! ND: E(omega, theta) = S(omega)D(theta)
+               wave_spec_blk(i,j,lp_i) = S_init_in(lp_i)*int_d
+             enddo
              ! want consistency between SWH definitions:
              !if (i.eq.1.and.cmt.ne.0) then
 
