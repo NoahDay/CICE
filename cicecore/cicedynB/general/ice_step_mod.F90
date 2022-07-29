@@ -799,7 +799,7 @@
                  !print*, 'passed overwriting directions: mwd(1,wavemask_dyn,iblk)=', mwd(1,wavemask_dyn,iblk)
              else ! WAVE_METH
                   call init_wave_spec_usr(wavemask_dyn)
-                  write(nu_diag,*) '         -> Calling init_wave_spec_usr'
+                 ! write(nu_diag,*) '         -> Calling init_wave_spec_usr'
              endif ! WAVE_METH
 
              if (1.eq.0) then ! reinitialise floe diameters (no memory)

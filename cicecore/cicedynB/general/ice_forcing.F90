@@ -5995,8 +5995,8 @@ dumlonloc=minloc(abs(mod(ww3_lon,c360)-dumlon),dim=1)
          j = dum_wavemask_vec(lp_i)
       endif
       if (dum_swh(i,j).gt.puny.and.dum_fp(i,j).gt.puny) then
-      write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1) + c360 ,iblk)/pi ,c360)
-        write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i,1),c360)
+        !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1) + c360 ,iblk)/pi ,c360)
+        !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i,1),c360)
          swh(lp_i,j,lp_b) = dum_swh(i,j)
          ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
          mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
