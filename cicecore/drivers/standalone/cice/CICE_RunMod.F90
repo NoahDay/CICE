@@ -406,8 +406,8 @@ if (WIM.eq.1) then
          if (my_task == master_task) then
            write(nu_diag,*) '1st check done'
          endif
-        !varname = 'LAT'! ND: commenting out 'TLAT'
-        varname = 'TLAT'
+        varname = 'LAT'! ND: commenting out 'TLAT'
+        !varname = 'TLAT'
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
          if (my_task == master_task) then
            write (nu_diag,*) ' inq is done'
@@ -418,13 +418,13 @@ if (WIM.eq.1) then
          if (my_task == master_task) then
            write(nu_diag,*) 'ND: N_lat is:', N_lat
          endif
-         N_lat = 384 ! grid resolution
-         !N_lat = 300
+         !N_lat = 384 ! grid resolution
+         N_lat = 300
          allocate(ww3_lat(1,N_lat)) ! noah day this used to be (N_lat,1)
          write(nu_diag,*) 'Number of dimensions', numDims
          write(nu_diag,*) 'lat done', N_lat
-         !varname = 'LON'! ND: commenting out 'TLON'
-         varname = 'TLON'
+         varname = 'LON'! ND: commenting out 'TLON'
+         !varname = 'TLON'
          call check( nf90_get_var(ncid, varid, ww3_lat) )
          !write(nu_diag,*) ' ww3_lat(1,N_lat) : ', ww3_lat(1,N_lat)
          !write(nu_diag,*) ' ww3_lat(N_lat,1) : ', ww3_lat(N_lat,1)
@@ -449,19 +449,20 @@ if (WIM.eq.1) then
          allocate(ww3_swh_full(N_lon,N_lat,N_tm))
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
          call check( nf90_get_var(ncid, varid, ww3_swh_full) )
-         ww3_swh_full = c2*eps3*ww3_swh_full
+         ww3_swh_full = ww3_swh_full!c2*eps3*ww3_swh_full
         !write(nu_diag,*) 'swh done', SHAPE(ww3_swh_full)
         varname = 'fp'
          allocate(ww3_fp_full(N_lon,N_lat,N_tm))
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
          call check( nf90_get_var(ncid, varid, ww3_fp_full) )
-         ww3_fp_full = eps3*ww3_fp_full
+         !ww3_fp_full = eps3*ww3_fp_full
+         ww3_fp_full = ww3_fp_full
          !write(nu_diag,*) 'fp done', SHAPE(ww3_fp_full)
          varname = 'dir' ! True north degrees, wind direction 
   	   allocate(ww3_dir_full(N_lon,N_lat,N_tm))
   	   call check( nf90_inq_varid(ncid, trim(varname), varid) )
   	   call check( nf90_get_var(ncid, varid, ww3_dir_full) )
-  	   ww3_dir_full = eps1*ww3_dir_full ! in degrees at this point
+  	   ww3_dir_full = ww3_dir_full!eps1*ww3_dir_full ! in degrees at this point
   	   !write(nu_diag,*) 'dirs done'
   	   call check( nf90_close(ncid))
       if (my_task == master_task) then

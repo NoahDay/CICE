@@ -774,7 +774,6 @@
                       end do
 
                       ! Initialise wave spectrum per longitude (equivalent to cell for 1 degree grid)
-                      write(nu_diag,*) '         -> Calling init_wave_spec: block number is         ', iblk
                       call init_wave_spec_long(wavemask_dyn_vec,ww3_swh(:,:), &
                             ww3_fp(:,:),ww3_dir(:,:),size(ww3_lon),size(ww3_lat),iblk)
 
@@ -893,6 +892,8 @@
                                        wave_spec_blk(:,:,:,iblk)) ! wave spectrum
                                        !write(nu_diag,*) ' Called increment floe'
              endif ! WIM_LONG
+              write(nu_diag,*) '----------------------------------------------------'
+              write(nu_diag,*) '------------WAVE PROP DONE----------------------'
              ! Convert from m^2s/rad to m^2s
              do j = 1, ny_block
                do i = 1, nx_block
@@ -1016,6 +1017,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END NOAH DAY -----------------------------------------------------------------
 ! Back to CICE 6 code
+ !write(nu_diag,*) 'WIM COMPLETE !!!!!!!!!!!!!!!!! '
 
          call icepack_step_therm2(dt=dt, ncat=ncat, &
                       nltrcr=nltrcr, nilyr=nilyr, nslyr=nslyr, nblyr=nblyr, &
