@@ -5925,41 +5925,26 @@ call ice_HaloUpdate (mwd,             halo_info, &
   !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
 
   ! NOAH DAY START
-  !ind_lon_ww3 = minloc(abs(ww3_lon-c0),dim=1) ! find the difference in grids
-  ! CICE starts at lon = 0, ww3 does not.
-  !ind_lon = floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360))
   this_block = get_block(blocks_ice(iblk),iblk)
   ilo = this_block%ilo
   ihi = this_block%ihi
   jlo = this_block%jlo
   jhi = this_block%jhi
 
-  !ind_lon_dim = mod(c180*TLON(ilo,dum_wavemask_vec(1),iblk)/pi,c360)
-  !ind_lon = ind_lon_dim(1)
-  !len = size(dum_swh)
-
-  !dumlonloc=minloc(abs(ww3_lon-dumlon),dim=2)
-
-  !ind_lon = floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)) ! only works for 1 degree
-  !ind_lon_ww3  = floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360))
-  !dumlon = TLON(ilo,dum_wavemask_vec(1),iblk)
-  !dumlonloc=minloc(abs(ww3_lon-dumlon),dim=1)
-
-  !ind_lon_ww3 = minloc(abs(ww3_lon(1,:)-tlon(1,dum_wavemask_vec(1))),dim=1)
   if (cmt.ne.0) then
     write(nu_diag,*) '     c180*TLON(1,dum_wavemask_vec(1),1)/pi:', c180*TLON(1,dum_wavemask_vec(1),1)/pi
-   write(nu_diag,*) '    mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360):', mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)
+    write(nu_diag,*) '    mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360):', mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)
     write(nu_diag,*) '     floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)) :', floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360))
     write(nu_diag,*) '     minloc(abs(ww3_lon-ind_lon),dim=2):', minloc(abs(ww3_lon-ind_lon),dim=2)
     write(nu_diag,*) '     minloc(abs(ww3_lon-ind_lon),dim=1):', minloc(abs(ww3_lon-ind_lon),dim=1)
-  !write(nu_diag,*) '     ind_lon:', ind_lon
-  !write(nu_diag,*) '     ind_lon_ww3:', ind_lon_ww3
-  !write(nu_diag,*) '     ind_lon_ww3(1):', ind_lon_ww3(1)
-  write(nu_diag,*) '        ww3_lon :',    ww3_lon
+    !write(nu_diag,*) '     ind_lon:', ind_lon
+    !write(nu_diag,*) '     ind_lon_ww3:', ind_lon_ww3
+    !write(nu_diag,*) '     ind_lon_ww3(1):', ind_lon_ww3(1)
+    write(nu_diag,*) '        ww3_lon :',    ww3_lon
     write(nu_diag,*) ' <---------------  block info: -------------------->'
     write(nu_diag,*) ' nblocks: ', nblocks
     !write(nu_diag,*) ' ind_lon: ', ind_lon
-  !  write(nu_diag,*) ' ind_lon_dim: ', ind_lon_dim
+    !write(nu_diag,*) ' ind_lon_dim: ', ind_lon_dim
     write(nu_diag,*) ' nx_block: ', nx_block
     write(nu_diag,*) ' ilo: ', ilo
     write(nu_diag,*) ' ihi: ', ihi
@@ -5981,29 +5966,26 @@ call ice_HaloUpdate (mwd,             halo_info, &
     write(nu_diag,*) ' swh: ', SHAPE(swh)
     write(nu_diag,*) ' N_lon: ', N_lon
     write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
-  !  write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+   !write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
     write(nu_diag,*) '<-------------------------------------------------->'
   end if
-  !ind_lon = 0!ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
 
-  !i = ilo ! index for nx_block
-  !j = 1 ! block index
-! !do lp_b=1,nblocks
+! Find the minimum block longitude
 dumlon =  mod(c180*TLON(1,dum_wavemask_vec(1),iblk)/pi +c360 ,c360)
+! Find the closest match on the WW3 grid
 dumlonloc=minloc(abs(mod(ww3_lon,c360)-dumlon),dim=1)
-write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
-write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
-write(nu_diag,*) 'abs(ww3_lon-dumlon): ', abs(ww3_lon-dumlon)
-write(nu_diag,*) 'ww3_lon: ', mod(ww3_lon,c360)
-write(nu_diag,*) 'TLON: ', mod(c180*TLON(:,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+!write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
+!write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
+!write(nu_diag,*) 'abs(ww3_lon-dumlon): ', abs(ww3_lon-dumlon)
+!write(nu_diag,*) 'ww3_lon: ', mod(ww3_lon,c360)
+!write(nu_diag,*) 'TLON: ', mod(c180*TLON(:,dum_wavemask_vec(1),iblk)/pi + c360,c360)
 
  do lp_b = 1,nblocks ! should be iblk
   do lp_i=ilo,ihi
-    !i = lp_i + (lp_b-1)*ihi
     ! Adapting the WW3 index for the current block/processor
-    i = lp_i-1 + dumlonloc(1) !(lp_b-1)*(ihi-1) +
-    write(nu_diag,*) ' lp_i: ', lp_i
-    write(nu_diag,*) ' i: ', i
+    i = lp_i-1 + dumlonloc(1)
+    !write(nu_diag,*) ' lp_i: ', lp_i
+    !write(nu_diag,*) ' i: ', i
 
 
     if (i.lt.N_lon) then
@@ -6019,10 +6001,9 @@ write(nu_diag,*) 'TLON: ', mod(c180*TLON(:,dum_wavemask_vec(1),iblk)/pi + c360,c
          ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
          mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
       else
-         !write(nu_diag,*) ' COORDS DID NOT WORK [I,J,B]:', lp_i, j, lp_b
-         !write(nu_diag,*) '     WW3 swh [m]:', dum_swh(i,j)
-         !write(nu_diag,*) '     WW3 ppd [s]:', c1/dum_fp(i,j)
-         !write(nu_diag,*) '     WW3 mwd [rad]:', dum_mwd(i,j)*c2*pi/c360
+         swh(lp_i,j,lp_b) = c0
+         ppd(lp_i,j,lp_b) = c0
+         mwd(lp_i,j,lp_b) = c0
       endif
     else
       ! Exceeded dimension, time to start over from 1.
@@ -6032,59 +6013,20 @@ write(nu_diag,*) 'TLON: ', mod(c180*TLON(:,dum_wavemask_vec(1),iblk)/pi + c360,c
          j = dum_wavemask_vec(lp_i)
       endif
       if (dum_swh(i-N_lon,j).gt.puny.and.dum_fp(i-N_lon,j).gt.puny) then
-      write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
-        write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i-N_lon,1),c360)
+        !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+        !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i-N_lon,1),c360)
          swh(lp_i,j,lp_b) = dum_swh(i-N_lon,j)
          ppd(lp_i,j,lp_b) = c1/dum_fp(i-N_lon,j) ! Converting to peak period
          mwd(lp_i,j,lp_b) = dum_mwd(i-N_lon,j)*c2*pi/c360 ! Converting to Radians
       else
-         !write(nu_diag,*) ' COORDS DID NOT WORK [I,J,B]:', lp_i, j, lp_b
-         !write(nu_diag,*) '     WW3 swh [m]:', dum_swh(i,j)
-         !write(nu_diag,*) '     WW3 ppd [s]:', c1/dum_fp(i,j)
-         !write(nu_diag,*) '     WW3 mwd [rad]:', dum_mwd(i,j)*c2*pi/c360
+         swh(lp_i,j,lp_b) = c0
+         ppd(lp_i,j,lp_b) = c0
+         mwd(lp_i,j,lp_b) = c0
       endif
     end if
   end do ! wave mask
 enddo ! block
 
-
-!!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
-
-! Noah's attempt
-!do lp_b=1,nblocks
-!   do lp_i = 1,nx_block
-!      if (dum_swh(lp+ind_lon,dum_wavemask_vec(lp_i)).gt.puny.and.dum_fp(lp+ind_lon,dum_wavemask_vec(lp_i)).gt.puny) then
-
-!   enddo ! longitudes
-!enddo ! block
-
-
-!do lp_b=1,nblocks
-!	do lp=1,360-ind_lon
-!      write(nu_diag,*) '     lp:', lp
-!		 if (dum_swh(lp+ind_lon,dum_wavemask_vec(lp_i)).gt.puny.and.dum_fp(lp+ind_lon,dum_wavemask_vec(lp_i)).gt.puny) then
-!		  swh(lp,dum_wavemask_vec(lp_i),lp_b) = dum_swh(lp+ind_lon,dum_wavemask_vec(lp_i))
-!		  ppd(lp,dum_wavemask_vec(lp_i),lp_b) = c1/dum_fp(lp+ind_lon,dum_wavemask_vec(lp_i))
-! 	    mwd(lp,dum_wavemask_vec(lp_i),lp_b) = pi*dum_mwd(lp+ind_lon,dum_wavemask_vec(lp_i))/c180
-!		 else
-!		  swh(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		  ppd(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		  mwd(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		 endif
-!  enddo ! end lp=1,360-ind_lon
-!  do lp=363-ind_lon,nx_block
- ! write(nu_diag,*) '     lp 2:', lp
-!	  if (dum_swh(lp-360+ind_lon,dum_wavemask_vec(lp_i)).gt.puny.and.dum_fp(lp-360+ind_lon,dum_wavemask_vec(lp_i)).gt.puny)then
-!		  swh(lp,dum_wavemask_vec(lp_i),lp_b) = dum_swh(lp-360+ind_lon,dum_wavemask_vec(lp_i))
-!	!	  ppd(lp,dum_wavemask_vec(lp_i),lp_b) = c1/dum_fp(lp-360+ind_lon,dum_wavemask_vec(lp_i))
- !	    mwd(lp,dum_wavemask_vec(lp_i),lp_b) = pi*dum_mwd(lp-360+ind_lon,dum_wavemask_vec(lp_i))/c180
-!		 else
-!		  swh(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		  ppd(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		  mwd(lp,dum_wavemask_vec(lp_i),lp_b) = c0
-!		 endif
-!	enddo ! end lp=361-ind_lon,nx_block
-!enddo ! end lp_b=1,nblocks
 
 
   call ice_HaloUpdate (swh,             halo_info, &
