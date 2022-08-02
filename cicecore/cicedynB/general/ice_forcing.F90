@@ -5973,12 +5973,11 @@ call ice_HaloUpdate (mwd,             halo_info, &
 ! Find the minimum block longitude
 dumlon =  mod(c180*TLON(1,dum_wavemask_vec(1),iblk)/pi +c360 ,c360)
 ! Find the closest match on the WW3 grid
-dumlonloc=minloc(abs(mod(ww3_lon,c360)-dumlon),dim=1)
+dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
+!write(nu_diag,*) 'BLOCK NUMBER : ', iblk
 !write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
 !write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
-!write(nu_diag,*) 'abs(ww3_lon-dumlon): ', abs(ww3_lon-dumlon)
-!write(nu_diag,*) 'ww3_lon: ', mod(ww3_lon,c360)
-!write(nu_diag,*) 'TLON: ', mod(c180*TLON(:,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+!write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
 
  do lp_b = 1,nblocks ! should be iblk
   do lp_i=ilo,ihi
@@ -5987,41 +5986,40 @@ dumlonloc=minloc(abs(mod(ww3_lon,c360)-dumlon),dim=1)
     !write(nu_diag,*) ' lp_i: ', lp_i
     !write(nu_diag,*) ' i: ', i
 
-
     if (i.lt.N_lon) then
-      if (dum_wavemask_vec(lp_i).lt.1) then
-         j = 1
-      else
+      if (dum_wavemask_vec(lp_i).gt.0) then ! If there is a valid wave mask then read in waves
          j = dum_wavemask_vec(lp_i)
-      endif
-      if (dum_swh(i,j).gt.puny.and.dum_fp(i,j).gt.puny) then
-        !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1) + c360 ,iblk)/pi ,c360)
-        !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i,1),c360)
-         swh(lp_i,j,lp_b) = dum_swh(i,j)
-         ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
-         mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
-      else
-         swh(lp_i,j,lp_b) = c0
-         ppd(lp_i,j,lp_b) = c0
-         mwd(lp_i,j,lp_b) = c0
+         !write(nu_diag,*) 'ww3_lon: ',mod(c180*ww3_lon(i,j)/pi + c360,c360)
+         !write(nu_diag,*) 'TLON: ', mod(c180*TLON(lp_i,j,iblk)/pi + c360,c360)
+
+         if (dum_swh(i,j).gt.puny.and.dum_fp(i,j).gt.puny) then
+         !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+         !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i,1) + 360,c360)
+            swh(lp_i,j,lp_b) = dum_swh(i,j)
+            ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
+            mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
+         else
+            swh(lp_i,j,lp_b) = c0
+            ppd(lp_i,j,lp_b) = c0
+            mwd(lp_i,j,lp_b) = c0
+         endif
       endif
     else
       ! Exceeded dimension, time to start over from 1.
-      if (dum_wavemask_vec(lp_i).lt.1) then
-         j = 1
-      else
+      if (dum_wavemask_vec(lp_i).gt.0) then
          j = dum_wavemask_vec(lp_i)
-      endif
-      if (dum_swh(i-N_lon,j).gt.puny.and.dum_fp(i-N_lon,j).gt.puny) then
-        !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
-        !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i-N_lon,1),c360)
-         swh(lp_i,j,lp_b) = dum_swh(i-N_lon,j)
-         ppd(lp_i,j,lp_b) = c1/dum_fp(i-N_lon,j) ! Converting to peak period
-         mwd(lp_i,j,lp_b) = dum_mwd(i-N_lon,j)*c2*pi/c360 ! Converting to Radians
-      else
-         swh(lp_i,j,lp_b) = c0
-         ppd(lp_i,j,lp_b) = c0
-         mwd(lp_i,j,lp_b) = c0
+         if (dum_swh(i-N_lon,j).gt.puny.and.dum_fp(i-N_lon,j).gt.puny) then
+         
+         !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+         !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i-N_lon,1) + 360,c360)
+            swh(lp_i,j,lp_b) = dum_swh(i-N_lon,j)
+            ppd(lp_i,j,lp_b) = c1/dum_fp(i-N_lon,j) ! Converting to peak period
+            mwd(lp_i,j,lp_b) = dum_mwd(i-N_lon,j)*c2*pi/c360 ! Converting to Radians
+         else
+            swh(lp_i,j,lp_b) = c0
+            ppd(lp_i,j,lp_b) = c0
+            mwd(lp_i,j,lp_b) = c0
+         endif
       endif
     end if
   end do ! wave mask

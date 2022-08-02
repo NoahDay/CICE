@@ -745,7 +745,7 @@
                  dumlatloc=minloc(abs(ww3_lat-c180*mn_lat/pi),dim=2) ! radians to degrees for mean lat
                  if (cmt.ne.0) write(nu_diag,*)'     dumlatloc: ', dumlatloc
 
-                 if (WIM_LONG.eq.1) then
+                 if (WIM_LONG.ne.0) then
                      !write(nu_diag,*) ' Longitudinal WIM Starting.....'
                      ! Calculate the wavemask for each longitude
                       wavemask_dyn_vec(:) = 0
@@ -878,7 +878,7 @@
                                         wavemask_dyn,   & ! dum_wavemask
                                         wavemask_dyn_vec,   & ! dum_wavemask
                                         wave_spec_blk(:,:,:,iblk)) ! wave spectrum
-             else ! Propagate waves on a block wise basis
+             else if (WIM_LONG.eq.0) then ! Propagate waves on a block wise basis
                call increment_floe (nx_block, ny_block, & ! nx_block, ny_block
                                        dt,              & ! dt
                                        tmask(:,:,iblk), & ! tmask
