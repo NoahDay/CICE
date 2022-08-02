@@ -1054,7 +1054,7 @@ end subroutine init_floe_0
                S_init_in(lp_i) = SDF_Bretschneider(om_in(lp_i),0,loc_swh(i,j),loc_ppd(i,j)) ! m^2s/rad
              end do
              ! ND: Initialise and integrate the directional spectrum, D(theta)
-             int_d = dir_spec_integral(S_init_in, loc_mwd(i,j), nu_diag) ! 1 if WIM_DIR = 0 loc_mwd(i,j)
+             int_d = dir_spec_integral(S_init_in, loc_mwd(i,j), nu_diag) ! if WIM_DIR = 0 then int_d=1 i.e. all energy is taken
 
              do lp_i=1,nw_in
                ! ND: E(omega, theta) = S(omega)D(theta)
