@@ -859,7 +859,7 @@
              do j = 1, ny_block
                do i = 1, nx_block
                   do k = 1, nfreq
-                     wave_spec_blk(i,j,k,iblk) = wave_spectrum(i,j,k,iblk)!/(2*pi)
+                     wave_spec_blk(i,j,k,iblk) = wave_spectrum(i,j,k,iblk)/(2*pi)
                   enddo
                enddo
             enddo
@@ -892,13 +892,13 @@
                                        wave_spec_blk(:,:,:,iblk)) ! wave spectrum
                                        !write(nu_diag,*) ' Called increment floe'
              endif ! WIM_LONG
-              write(nu_diag,*) '----------------------------------------------------'
-              write(nu_diag,*) '------------WAVE PROP DONE----------------------'
+             ! write(nu_diag,*) '----------------------------------------------------'
+             ! write(nu_diag,*) '------------WAVE PROP DONE----------------------'
              ! Convert from m^2s/rad to m^2s
              do j = 1, ny_block
                do i = 1, nx_block
                   do k = 1, nfreq
-                     wave_spectrum(i,j,k,iblk) = wave_spec_blk(i,j,k,iblk)!*(2*pi)
+                     wave_spectrum(i,j,k,iblk) = wave_spec_blk(i,j,k,iblk)*(2*pi)
                     ! if (k.gt.1.0) write(nu_diag,*) ' Cell with waves has coords:', i,j
                   enddo
                enddo
@@ -915,22 +915,24 @@
 
     ! Noah Day WIM 25/10/21
     ! Creating a wave spectrum in the icepack using the attenuated significant wave height and peak period
-    fmin = 1d0/1000d0 ! minimum frequency, 1/s
-    fmax = 1d0/1d0 ! maximum frequency, 1/s
+    fmin = 1d0/1000d0 ! minimum frequency, 0.001 Hz
+    fmax = 1d0/1d0 ! maximum frequency, 1 Hz
     om1=2*pi*fmin ! angular frequency, rad/s
     om2=2*pi*fmax ! angular frequency, rad/s
-    om_0 = (om2 - om1)/(nfreq-1)
+    om_0 = (om2 - om1)/(nfreq-1) ! nfreq must match nw in WIM
     ! Importing om values
+
     do lp_i=1,nfreq
         om(lp_i)        = om1 + (lp_i-1)*om_0
+        wavefreq(1) = om(lp_i)/(c2*pi) ! Converting from angular frequency to Hz
     end do
 
-    dwavefreq(1) = om(1)
+    dwavefreq(1) = wavefreq(1)
     do lp_i=2,nfreq
-      dwavefreq(lp_i) = om(lp_i) - om(lp_i-1)
+      dwavefreq(lp_i) = wavefreq(lp_i) - wavefreq(lp_i-1)
     end do
 
-    wavefreq(:) = om(:)
+   
     !dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
 
   !-------------------------------------------------------------------------------
