@@ -924,7 +924,7 @@
 
     do lp_i=1,nfreq
         om(lp_i)        = om1 + (lp_i-1)*om_0
-        wavefreq(1) = om(lp_i)/(c2*pi) ! Converting from angular frequency to Hz
+        wavefreq(lp_i) = om(lp_i)/(c2*pi) ! Converting from angular frequency to Hz
     end do
 
     dwavefreq(1) = wavefreq(1)
@@ -932,6 +932,18 @@
       dwavefreq(lp_i) = wavefreq(lp_i) - wavefreq(lp_i-1)
     end do
 
+
+    ! TESTING
+   !  do j = 1, ny_block
+   !            do i = 1, nx_block
+   !                   write(nu_diag,*) 'Freq SWH:', c4* SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
+   !                   write(nu_diag,*) 'Freq SWH 2:', c4* SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)*c2*pi))
+   !                   write(nu_diag,*) 'Ang Freq SWH:', c4* SQRT(SUM(wave_spec_blk(i,j,:,iblk)*om_0))
+   !                    write(nu_diag,*) 'SWH:', swh(i,j,iblk)
+                    ! if (k.gt.1.0) write(nu_diag,*) ' Cell with waves has coords:', i,j
+  !             enddo
+  !          enddo
+  
    
     !dwavefreq(:) = wavefreq(:)*(SQRT(1.1_dbl_kind) - SQRT(c1/1.1_dbl_kind))
 
