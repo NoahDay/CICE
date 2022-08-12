@@ -139,7 +139,8 @@
          oceanmixed_file  ! file name for ocean forcing data
 
       integer (kind=int_kind), parameter :: &
-         nfld = 8   ! number of fields to search for in forcing file
+         nfld = 8, &   ! number of fields to search for in forcing file 
+         ndfld = 4     ! ND number of ocean input variables
 
       ! as in the dummy atm (latm)
       real (kind=dbl_kind), parameter, public :: &
@@ -149,7 +150,8 @@
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         ocn_frc_m   ! ocn data for 12 months
+         ocn_frc_m, &  ! ocn data for 12 months
+         ocn_frc_m_access ! ocn data for access
 
       logical (kind=log_kind), public :: &
          restore_ocn                 ! restore sst if true
@@ -215,6 +217,7 @@
         topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
         botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
            ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+           ocn_frc_m_access(nx_block,ny_block,  max_blocks,ndfld,12), & ! ND: ocn data for 12 months from ACCESS
         topmelt_file(ncat), &
         botmelt_file(ncat), &
          stat=ierr)
@@ -6197,6 +6200,10 @@ enddo ! block
       end if
      end subroutine check
 
+
+
+
+
 ! Noah Day WIM =======================================================================
 
      subroutine ocn_data_access_init
@@ -6216,10 +6223,14 @@ enddo ! block
 ! Fields 3, 4 are on the U-grid; 1, 2 are
 ! on the T-grid.
 
-! authors: Noah Day, UAdl
+! authors: Noah Day, UAdl (adapted from ocn_data_ncar_init)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
+      use ice_domain, only: nblocks, distrb_info
+      use ice_flux, only: sss, sst, Tf, uocn, vocn
+      use ice_grid, only: hm, tmask, umask
+      use ice_global_reductions, only: global_minval, global_maxval
 #ifdef USE_NETCDF
       use netcdf
 #endif
@@ -6230,16 +6241,13 @@ enddo ! block
         nrec, & ! record number for direct access
         nbits
 
-      integer (kind=int_kind), parameter :: &
-         ndfld = 4   ! number of fields to search for in forcing file  
-
       character(char_len) :: &
         vname(ndfld) ! variable names to search for in file
       data vname /  &
            'sst',      'sss',     'u',     'v' /
 
       integer (kind=int_kind) :: &
-        fid        , & ! file id
+       ! fid        , & ! file id
         dimid          ! dimension id
 
       integer (kind=int_kind) :: &
@@ -6247,8 +6255,18 @@ enddo ! block
         nlat    , & ! number of longitudes of data
         nlon        ! number of latitudes  of data
 
+      integer (kind=int_kind) :: &
+         i, j, iblk       , & ! horizontal indices
+         fid                  ! file id for netCDF file
+
+      character (char_len) :: &
+         fieldname            ! field name in netcdf file
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
+
+      real (kind=dbl_kind) :: &
+          vmin, vmax
 
       character(len=*), parameter :: subname = '(ocn_data_access_init)'
 
@@ -6295,29 +6313,23 @@ enddo ! block
             call abort_ice (error_message=subname//'ice: ocn frc file nlat ne ny_global', &
                file=__FILE__, line=__LINE__)
           endif
-
         endif ! master_task
-
-        ! Read in ocean forcing data for all 12 months
+       ! Read in ocean forcing data for all 12 months
         do n=1,ndfld
           do m=1,12
-
             ! Note: netCDF does single to double conversion if necessary
-!           if (n >= 4 .and. n <= 7) then
-!              call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
-!                               field_loc_NEcorner, field_type_vector)
-!           else
+           if (n >= 3 .and. n <= 4) then
+              call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+                               field_loc_NEcorner, field_type_vector)
+           else
                call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
-!           endif
+           endif
             if (n.eq.1) then
-               ocn_frc_m(:,:,:,n,m) = work1(:,:,:) - 273.15 ! Converting from K to C
+               ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:) - 273.15 ! Converting from K to C
             else
-               ocn_frc_m(:,:,:,n,m) = work1(:,:,:)
+               ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:)
             endif
-
-            
-
           enddo               ! month loop
         enddo               ! field loop
 
@@ -6328,33 +6340,104 @@ enddo ! block
           file=__FILE__, line=__LINE__)
 #endif
 
-      else  ! binary format
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init'
+           vmin = global_minval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,2,1),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,1),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,3,1),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,1),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,4,1),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,1),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+            !endif
+     ! endif
 
-        nbits = 64
-        call ice_open (nu_forcing, sst_file, nbits)
 
-        nrec = 0
-        do n=1,ndfld
-           do m=1,12
-              nrec = nrec + 1
-              if (n == 1 .or. n == 2) then ! t-grid
-                call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
-                               field_loc_NEcorner, field_type_vector)
-              else   ! u-grid
-                call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
-                               field_loc_center, field_type_scalar)
-              endif
-              ocn_frc_m(:,:,:,n,m) = work1(:,:,:)
-           enddo               ! month loop
-        enddo               ! field loop
-        close (nu_forcing)
+
+
+!      else  ! binary format
+
+        !nbits = 64
+        !call ice_open (nu_forcing, sst_file, nbits)
+
+        !nrec = 0
+        !do n=1,ndfld
+        !   do m=1,12
+        !      nrec = nrec + 1
+        !      if (n == 3 .or. n == 4) then ! u-grid
+        !        call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
+        !                       field_loc_NEcorner, field_type_vector)
+        !      else   ! t-grid
+        !        call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
+        !                       field_loc_center, field_type_scalar)
+        !      endif
+        !      ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:)
+        !   enddo               ! month loop
+        !enddo               ! field loop
+        !close (nu_forcing)
 
       endif
 
 !echmod - currents cause Fram outflow to be too large
-!             ocn_frc_m(:,:,:,4,:) = c0
-!             ocn_frc_m(:,:,:,5,:) = c0
+!             ocn_frc_m_access(:,:,:,4,:) = c0
+!             ocn_frc_m_access(:,:,:,5,:) = c0
 !echmod
+
+!!!! HYCOM
+
+     !if (my_task == master_task) then
+     !  write (nu_diag,*)' '
+     !  write (nu_diag,*)'Initial ocean forcing file: ',trim(sst_file)
+     !endif
+
+     !fieldname = 'sss'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, sss, debug_forcing, &
+     !                  field_loc_center, field_type_scalar) ! t-grid
+     !call ice_close_nc(fid)
+
+     !call ocn_freezing_temperature
+
+     !sst_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
+
+     !fieldname = 'sst'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, sst, debug_forcing, &
+     !                     field_loc_center, field_type_scalar) ! t-grid
+     !call ice_close_nc(fid)
+
+     !fieldname = 'u'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, uocn, debug_forcing, &
+     !                     field_loc_NEcorner, field_type_vector) ! u-grid
+     !call ice_close_nc(fid)
+
+     !fieldname = 'v'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, vocn, debug_forcing, &
+     !                     field_loc_NEcorner, field_type_vector) ! u-grid
+     !call ice_close_nc(fid)
+
+     ! Make sure sst is not less than freezing temperature Tf
+     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+     !do iblk = 1, nblocks
+     !   do j = 1, ny_block
+     !   do i = 1, nx_block
+     !      sst(i,j,iblk) = max(sst(i,j,iblk) - 273.15,Tf(i,j,iblk)) ! Converting from K to C
+     !   enddo
+     !   enddo
+     !enddo
+     !$OMP END PARALLEL DO
+
 
       end subroutine ocn_data_access_init
 
@@ -6385,9 +6468,6 @@ enddo ! block
           maxrec          , & ! maximum record number
           recslot         , & ! spline slot for current record
           midmonth            ! middle day of month
-         
-      integer (kind=int_kind), parameter :: &
-         ndfld = 4   ! number of fields to search for in forcing file  
 
       real (kind=dbl_kind) :: &
           vmin, vmax
@@ -6432,11 +6512,11 @@ enddo ! block
         do iblk = 1, nblocks
         ! use sst_data arrays as temporary work space until n=1
         if (ixm /= -99) then  ! first half of month
-          sst_data(:,:,1,iblk) = ocn_frc_m(:,:,iblk,n,ixm)
-          sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,mmonth)
+          sst_data(:,:,1,iblk) = ocn_frc_m_access(:,:,iblk,n,ixm)
+          sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,mmonth)
         else                 ! second half of month
-          sst_data(:,:,1,iblk) = ocn_frc_m(:,:,iblk,n,mmonth)
-          sst_data(:,:,2,iblk) = ocn_frc_m(:,:,iblk,n,ixp)
+          sst_data(:,:,1,iblk) = ocn_frc_m_access(:,:,iblk,n,mmonth)
+          sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,ixp)
         endif
         enddo
         call interpolate_data (sst_data,work1)

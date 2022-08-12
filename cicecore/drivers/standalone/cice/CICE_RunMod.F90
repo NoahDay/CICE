@@ -189,9 +189,9 @@ endif ! WIM
 ! ------------------------------------------------------------------------------
 
 #endif
-
+         write(nu_diag,*) 'WIM DONE'
          call ice_step
-
+         write(nu_diag,*) 'ice step'
 ! tcraig, use advance_timestep now
 !         istep  = istep  + 1    ! update time step counters
 !         istep1 = istep1 + 1
@@ -211,6 +211,7 @@ endif ! WIM
 !-------
          call get_forcing_atmo     ! atmospheric forcing from data
          call get_forcing_ocn(dt)  ! ocean forcing from data
+         write(nu_diag,*) 'forcing'
 
          ! isotopes
          if (tr_iso)     call fiso_default                 ! default values
@@ -224,6 +225,7 @@ endif ! WIM
 
          call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
          call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+         write(nu_diag,*) 'flux'
 
          call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
