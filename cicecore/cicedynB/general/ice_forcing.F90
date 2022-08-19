@@ -2628,6 +2628,24 @@
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
       endif
 
+      
+       vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
+       vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
+
+      ! ND: NOT NEEDED
+      !do iblk = 1, nblocks
+        ! Remove negative Tair_data
+        !do j = 1, ny_block
+        !  do i = 1, nx_block
+        !    if (Tair_data(i,j,n1,iblk).lt.c0) Tair_data(i,j,n1,iblk) = 185.15 ! ND: If Temp (K) < 0 set it to last value
+        !  enddo
+        !enddo
+      !enddo
+      !vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
+
       ! Interpolate
       call interpolate_data (Tair_data, Tair)
       call interpolate_data (uatm_data, uatm)
@@ -2647,6 +2665,7 @@
         do j = 1, ny_block
           do i = 1, nx_block
             if (aice(i,j,iblk) > p1) Tair(i,j,iblk) = min(Tair(i,j,iblk), Tffresh+p1)
+    !        if (Tair(i,j,iblk).lt.185.15) Tair(i,j,iblk) = 185.15 ! ND: 185.15 is coldest ever recorded
           enddo
         enddo
 
@@ -6340,6 +6359,38 @@ enddo ! block
           file=__FILE__, line=__LINE__)
 #endif
 
+
+ !  do iblk = 1, nblocks
+ !       do j = 1, ny_block
+ !       do i = 1, nx_block
+ !          ocn_frc_m_access(i,j,iblk,1,1) = max(ocn_frc_m_access(i,j,iblk,1,1) ,Tf(i,j,iblk)) ! Making sure sst is not less than freezing temperature
+ !          ocn_frc_m_access(i,j,iblk,2,1) = max(ocn_frc_m_access(i,j,iblk,2,1), c0) ! Making sure sss is not negative
+ !          if (ocn_frc_m_access(i,j,iblk,3,1) .gt. c5) then 
+ !              ocn_frc_m_access(i,j,iblk,3,1) = min(ocn_frc_m_access(i,j,iblk,3,1), c5) ! Making sure u-velocity isn't unrealistic
+ !           elseif (uocn(i,j,iblk) .lt. -c5) then 
+ !              ocn_frc_m_access(i,j,iblk,3,1) = max(ocn_frc_m_access(i,j,iblk,3,1), -c5) ! Making sure v-velocity isn't unrealistic
+ !          endif 
+ !          if (ocn_frc_m_access(i,j,iblk,4,1) .gt. c5) then 
+ !              ocn_frc_m_access(i,j,iblk,4,1) = c5 ! Making sure v-velocity isn't unrealistic
+ !           elseif (ocn_frc_m_access(i,j,iblk,4,1) .lt. -c5) then 
+ !              ocn_frc_m_access(i,j,iblk,4,1) = -c5 ! Making sure v-velocity isn't unrealistic
+ !          endif 
+ !       enddo
+ !       enddo
+ !  enddo
+
+! ND: initialising SSS and SST
+ do iblk = 1, nblocks
+        do j = 1, ny_block
+        do i = 1, nx_block
+            sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,1)
+            sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,1)
+            uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,1)
+            vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,1)
+        enddo 
+        enddo
+enddo
+
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_access_init'
            vmin = global_minval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
@@ -6519,13 +6570,44 @@ enddo ! block
           sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,ixp)
         endif
         enddo
+        ! ND: Debugging SST
+      !  write (nu_diag,*) 'Pre interpolation:'
+      !vmin = global_minval(sst,distrb_info,tmask)
+      !     vmax = global_maxval(sst,distrb_info,tmask)
+      !     if (my_task.eq.master_task)  &
+      !         write (nu_diag,*) 'sst',vmin,vmax
+      !         vmin = global_minval(work1,distrb_info,tmask)
+      !     vmax = global_maxval(work1,distrb_info,tmask)
+      !     if (my_task.eq.master_task)  &
+      !         write (nu_diag,*) 'work1',vmin,vmax
+
+      !         vmin = MAXVAL(sst_data(:,:,1,iblk))
+      !     vmax = MINVAL(sst_data(:,:,1,iblk))
+      !     if (my_task.eq.master_task)  &
+      !         write (nu_diag,*) 'sst_data',vmin,vmax
+
+      !         vmin = MAXVAL(sst_data(:,:,2,iblk))
+      !     vmax = MINVAL(sst_data(:,:,2,iblk))
+      !     if (my_task.eq.master_task)  &
+      !         write (nu_diag,*) 'sst_data2',vmin,vmax
+!      vmin = global_minval(sst_data(:,:,1,iblk),distrb_info,tmask)
+!           vmax = global_maxval(sst_data(:,:,1,iblk),distrb_info,tmask)
+!           if (my_task.eq.master_task)  &
+!               write (nu_diag,*) 'sst_data(:,:,1,iblk)',vmin,vmax
+!      vmin = global_minval(sst_data(:,:,2,iblk),distrb_info,tmask)
+!           vmax = global_maxval(sst_data(:,:,2,iblk),distrb_info,tmask)
+!           if (my_task.eq.master_task)  &
+!               write (nu_diag,*) 'sst_data(:,:,2,iblk)',vmin,vmax
+
+
         call interpolate_data (sst_data,work1)
+
         ! masking by hm is necessary due to NaNs in the data file
         do j = 1, ny_block
           do i = 1, nx_block
-            if (n == 2) sss    (i,j,:) = c0
-            if (n == 3) uocn   (i,j,:) = c0
-            if (n == 4) vocn   (i,j,:) = c0
+          !  if (n == 2) sss    (i,j,:) = c0
+          !  if (n == 3) uocn   (i,j,:) = c0
+          !  if (n == 4) vocn   (i,j,:) = c0
             do iblk = 1, nblocks
               if (hm(i,j,iblk) == c1) then
                 if (n == 2) sss    (i,j,iblk) = work1(i,j,iblk)
@@ -6563,12 +6645,40 @@ enddo ! block
           do i = 1, nx_block
             if (hm(i,j,iblk) == c1) then
               sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
-            else
-              sst(i,j,iblk) = c0
+            else ! ND: It is land!
+              sst(i,j,iblk)  = c0
+              sss(i,j,iblk)  = c0
+              uocn(i,j,iblk) = c0
+              vocn(i,j,iblk) = c0
+            endif
+            if (umask(i,j,iblk) .eqv. .false.) then
+                  ! ND: Setting ocean velocities on land to 0
+                  uocn(i,j,iblk) = c0
+                  vocn(i,j,iblk) = c0
             endif
           enddo
          enddo
         enddo
+        else
+            do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               if (hm(i,j,iblk) == c1) then
+                  sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
+               else ! ND: It is land!
+                  sst(i,j,iblk)  = c0
+                  sss(i,j,iblk)  = c0
+                  uocn(i,j,iblk) = c0
+                  vocn(i,j,iblk) = c0
+               endif
+               if (umask(i,j,iblk) .eqv. .false.) then
+                  ! ND: Setting ocean velocities on land to 0
+                  uocn(i,j,iblk) = c0
+                  vocn(i,j,iblk) = c0
+               endif
+            enddo
+            enddo
+         enddo
         !$OMP END PARALLEL DO
       endif
 
