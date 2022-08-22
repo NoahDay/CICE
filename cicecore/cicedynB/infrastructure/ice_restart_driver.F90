@@ -19,7 +19,7 @@
 
       use ice_kinds_mod
       use ice_arrays_column, only: oceanmixed_ice
-      use ice_constants, only: c0, c1, p5, &
+      use ice_constants, only: c0, c1, p5, p001, &  ! ND: adding p001
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
@@ -206,7 +206,7 @@
           strocnxT, strocnyT, sst, frzmlt, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+          stress12_1, stress12_2, stress12_3, stress12_4, Tf ! ND: adding tf
       use ice_flux, only: coszen
       use ice_grid, only: tmask, grid_type
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
@@ -421,11 +421,19 @@
 
          if (my_task == master_task) &
               write(nu_diag,*) 'min/max sst, frzmlt'
-
-         call read_restart_field(nu_restart,0,sst,'ruf8', &
-              'sst',1,diag,field_loc_center, field_type_scalar)
-         call read_restart_field(nu_restart,0,frzmlt,'ruf8', &
-              'frzmlt',1,diag,field_loc_center, field_type_scalar)
+! ND: commenting out for now
+        ! call read_restart_field(nu_restart,0,sst,'ruf8', &
+        !      'sst',1,diag,field_loc_center, field_type_scalar)
+        ! call read_restart_field(nu_restart,0,frzmlt,'ruf8', &
+        !      'frzmlt',1,diag,field_loc_center, field_type_scalar)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               frzmlt(i,j,iblk) = -p001 ! ND: Initialise some freeze melt potential to kickstart the ocean (breaks with 0)
+             !  sst(i,j,iblk) = Tf(i,j,iblk) ! ND: Initialise freezing everywhere
+            enddo
+            enddo
+         enddo
       endif
 
       !-----------------------------------------------------------------

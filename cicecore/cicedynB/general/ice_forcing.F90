@@ -6247,7 +6247,7 @@ enddo ! block
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_domain, only: nblocks, distrb_info
-      use ice_flux, only: sss, sst, Tf, uocn, vocn
+      use ice_flux, only: sss, sst, Tf, uocn, vocn, frzmlt
       use ice_grid, only: hm, tmask, umask
       use ice_global_reductions, only: global_minval, global_maxval
 #ifdef USE_NETCDF
@@ -6387,6 +6387,7 @@ enddo ! block
             sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,1)
             uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,1)
             vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,1)
+            frzmlt(i,j,iblk) = c1
         enddo 
         enddo
 enddo
