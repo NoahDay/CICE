@@ -9,11 +9,15 @@
 
 CICE6 includes the capabilities for measuring the impacts of waves on sea ice across a global scale. In initial testing of CICE6 it was apparent that there is no code for the propagation and attenuation of wind waves and swell through sea ice. Without waves no ice breakup will occur and all new floes are assumed to have the geometry of pancake ice, rather than using the theory of Shen et al. (2001). The Waves-in-Ice Module (WIM) module is a way to propagate waves through the ice pack in CICE6, such that preliminary runs can be completed using CICE's new FSD routine. This module is from the code used in Bennetts et al. (2017) ([https://bitbucket.org/puotila/cicewithwaves/src/master/](https://bitbucket.org/puotila/cicewithwaves/src/master/)), although some modifications have been made to make it compatible with the latest version of CICE. It was decided that CICE's ice breakup routine (Roach et al., 2018; Horvat et al., 2015) would be used within this model to keep comparisons as simple as possible. The short-coming of this decision is that wave-sea ice interactions are not coupled, we are currently investigating the effects of this.
 
+In our testing we found that the new floe subroutine (Shen theory) is highly influential on the floe size of the ice cover. As such, applying a north-south wave cut-off (using mean wave direction) was not sufficient. As the wave field in CICE has no memory, a large swarth of cells would frequently 'switch' between zero wave energy (waves travelling north) and non-zero wave energy (waves travelling south). This resulted in new floes being assigned to the largest floe size category in the first epoch, before being rapidly broken up by the wave field in the second epoch, causing the floe size diagnostics terms to fluctate. As such, we have applied a parameteric spreading technique paired to calculate the 2D directional spectrum, from which we intergrate over the wedge travelling southward to more accurate approximate the resulting wave energy passing into the ice cover.
+
 The code primarily aims to achieve: 
 
-1. The definition of the edge of the ice pack (determined when the ice concentration < puny)
+1. The ice edge is taken to be the first equatoward cell with less than 1% SIC, although this threshold parameter can be changed.
 2. Read in data for these respective cells from a WW3 hindcast dataset ([https://data.csiro.au/collections/collection/CI6616v010](https://data.csiro.au/collections/collection/CI6616v010)).
-3. Use a Bretscheider spectrum to define the wave spectrum for each cell along the edge of the wave mask.
+3. Use a Bretscheider spectrum to define the wave spectrum, $S(\omega)$, for each cell along the edge of the wave mask (`ice_floe.F90/increment_floe_long`).
+4. Apply a parametric spreading technique (cosine-sqaured) to approximate a 2D wave-energy, $E(\omega,\theta) = S(\omega)D(\theta)$  (`ice_floe.F90/increment_floe_long`).
+5. Extract the component heading southward $E(\omega,\theta=\pi)$, (`ice_floe.F90/increment_floe_long`).
 4. Propagate waves given the significant wave height, peak period, and mean wave direction into the ice pack.
 5. Feed this data into the icepack thermodynamic routine.
 
@@ -25,11 +29,6 @@ For more details see https://noahday.notion.site/README-af9c753fb9ab47f2a0220bda
 
 The code is initiated within `ice_step_mod`, in the subroutine `step_therm2` 
 
-### `CICE_RUN`
-
-### `ice_forcing`
-
-### `ice_step_mod`
 
 ## Reference list:
 
@@ -48,10 +47,13 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
 Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone. Part 2: Numerical implementation and sensitivity studies along 1D transects of the ocean surface’, Ocean Modelling, 71, pp. 92–101. doi:10.1016/j.ocemod.2013.05.011.
 
 ## ❓FAQ
+- What is the domain of the module?
 
-- What dimension is the WIM model?
+    The WIM is currently limited to only the Southern Hemisphere as there are more complexities with land around the Arctic.
 
-    Currently, the WIM is limited to 1D (along longitudinal lines). There is some infrastructure for moving to a 2D wave propagation scheme, although Alberto Alberello and Luke Bennetts ran into problems regarding the transfer of wave energy between blocks in CICE.
+- What dimension are the wave spectra?
+
+    Currently, the WIM is limited to 1D (along longitudinal lines). There is some infrastructure for moving to a 2D wave propagation scheme, although Alberto Alberello and Luke Bennetts ran into problems with the transfer of wave energy between blocks in CICE.
     
 - What is the wave spectrum made up of?
     
@@ -59,7 +61,7 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
     
 - Where are waves propagated from?
     
-    Yes, from the closest ice-free cell. It uses a 1D wave scattering advection scheme, so it reads in wave direction but theses directions don't evolve over time.
+    Wave statistics are taken from the closest ice-free cell. It uses a 1D wave scattering advection scheme, so it reads in wave direction but theses directions don't evolve over time.
     
 - What output does this module produce?
     
@@ -77,7 +79,6 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
     
     ```fortran
     real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-             ifd     , & ! ice floe diameter (m)
              swh     , & ! significant wave height (m)
              mwd     , & ! mean wave direction (Rads)
              ppd         ! wave peak period (s)
@@ -85,7 +86,7 @@ Williams, T.D. et al. (2013) ‘Wave–ice interactions in the marginal ice zone
     
 - What are the attenuation settings?
     
-    There are two kinds of attenuation present in this module, the simplest is based off of observations from Meylan et al. (2014). The more complex attenuation model has not currently been tested in CICE6 and is based off of the work by Williams et al. (2013a,2013b).
+    There are two kinds of attenuation present in this module, the simplest is based off of observations from Meylan et al. (2014). The more complex  (floe size dependent) attenuation model has not currently been tested in CICE6 and is based off of the work by Williams et al. (2013a,2013b).
     
 
 ### Extra techinical details
