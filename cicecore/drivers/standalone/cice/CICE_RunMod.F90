@@ -331,7 +331,7 @@ if (WIM.eq.1) then
     elseif (yr.eq.2020) then
       char_yr = '2020'
     endif
-
+    
     if (WAVE_METH.eq.1) then
       if (my_task == master_task) then
          write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
