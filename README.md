@@ -13,7 +13,7 @@ In our testing we found that the new floe subroutine (Shen theory) is highly inf
 
 The code primarily aims to achieve: 
 
-1. The ice edge is taken to be the first equatoward cell with less than 1% SIC, although this threshold parameter can be changed.
+1. The ice edge is taken to be the first equatoward cell with less than puny SIC, although this threshold parameter can be changed.
 2. Read in data for these respective cells from a WW3 hindcast dataset ([https://data.csiro.au/collections/collection/CI6616v010](https://data.csiro.au/collections/collection/CI6616v010)).
 3. Use a Bretscheider spectrum to define the wave spectrum, $S(\omega)$, for each cell along the edge of the wave mask (`ice_floe.F90/increment_floe_long`).
 4. Apply a parametric spreading technique (cosine-sqaured) to approximate a 2D wave-energy, $E(\omega,\theta) = S(\omega)D(\theta)$  (`ice_floe.F90/increment_floe_long`).
