@@ -2163,7 +2163,7 @@
     !-------------------------------------------------------------------
     ! optional diagnostics
     !-------------------------------------------------------------------
-      write(nu_diag,*) 'ND: optional diagnostics '
+      !write(nu_diag,*) 'ND: optional diagnostics '
       if (my_task == master_task .and. diag) then
           write(nu_diag,*) & 
             'ice_read_global_nc, fid= ',fid, ', nrec = ',nrec, & 

@@ -1509,6 +1509,10 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
+      elseif (trim(ocn_data_type) == 'access-om2') then ! netcdf
+         i = index(data_file,'.nc') - 5
+         tmpname = data_file
+         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
       else                                     ! LANL/NCAR naming convention
          i = index(data_file,'.dat') - 5
          tmpname = data_file
@@ -6250,6 +6254,8 @@ enddo ! block
       use ice_flux, only: sss, sst, Tf, uocn, vocn, frzmlt
       use ice_grid, only: hm, tmask, umask
       use ice_global_reductions, only: global_minval, global_maxval
+      use ice_restart_shared, only: runtype
+      use ice_calendar, only: myear 
 #ifdef USE_NETCDF
       use netcdf
 #endif
@@ -6302,10 +6308,13 @@ enddo ! block
              'SST restoring timescale = ',trestore,' days'
 
          sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
+         
 
         !---------------------------------------------------------------
         ! Read in ocean forcing data from an existing file
         !---------------------------------------------------------------
+        write (nu_diag,*) 'FILE YEAR:', myear
+        call file_year(sst_file,myear)
         write (nu_diag,*) 'ocean mixed layer forcing data file = ', &
                            trim(sst_file)
 
@@ -6387,7 +6396,12 @@ enddo ! block
             sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,1)
             uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,1)
             vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,1)
-            frzmlt(i,j,iblk) = c1
+            if (runtype.eq.'initial') then ! Freeze/melt is calculated within CICE
+               ! Initialise to 1.0 just to begin the run
+               frzmlt(i,j,iblk) = c1
+            else
+               frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
+            endif
         enddo 
         enddo
 enddo
