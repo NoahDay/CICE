@@ -36,6 +36,7 @@
                              pointer_file, runtype
       use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
+      use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global ! Noah Day WIM
 !  -----------------------------------------------------------------------------
 
       implicit none
@@ -131,7 +132,7 @@ if (WIM.eq.1) then
     write(nu_diag,*) 'myear: ', myear
     write(nu_diag,*) 'idate: ', idate
     if (WAVE_METH.eq.1) then
-       call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr)
+       call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
        allocate(ww3_swh(N_lon,N_lat))
        allocate(ww3_fp(N_lon,N_lat))
        allocate(ww3_dir(N_lon,N_lat))
@@ -172,6 +173,18 @@ if (WIM.eq.1) then
                deallocate(ww3_tm)
            endif
         endif
+
+
+      ! SETTING CONSTANT VALUES 21/02/23
+      if (WAVE_METH.eq.0) then
+         !allocate(ww3_swh(nx_global,ny_global))
+         !allocate(ww3_fp(nx_global,ny_global))
+         !allocate(ww3_dir(nx_global,ny_global))
+         !ww3_swh(:,:) = 3.0
+         !ww3_fp(:,:) = 10.0
+         !ww3_dir(:,:) = 0.0
+         !write(nu_diag,*) 'Constant wave data set '
+      endif
         !nmth = nmth+1
         !print*, '    month=', nmth
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
@@ -258,8 +271,6 @@ if (WIM.eq.1) then
 ! !DESCRIPTION:
 !
 ! reads Elodie's WW3 data from netcdf file
-! Noah Day WIM, originally this would be in CICE_RunMod (CICE4) but I've added
-! it to icepack_floe to make it clear what comes from WIM and what is from standard CICE6
 !
 ! !REVISION HISTORY:
 !
@@ -267,18 +278,20 @@ if (WIM.eq.1) then
 !
 ! !INTERFACE:
 !
-      subroutine sub_WW3_dataread (mth,N_tm,N_lat,N_lon,yr)
+      subroutine sub_WW3_dataread (mth,N_tm,N_lat,N_lon,yr,dy)
 !
 ! !USES:
-use ice_read_write, only: ice_open, ice_read, &
-                          ice_get_ncvarsize, ice_read_vec_nc, &
-                          ice_open_nc, ice_read_nc, ice_close_nc
+!use ice_read_write, only: ice_open, ice_read, &
+!                          ice_get_ncvarsize, ice_read_vec_nc, &
+!                          ice_open_nc, ice_read_nc, ice_close_nc
 use ice_forcing, only: check
+use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
+use ice_blocks, only: nx_block, ny_block
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       integer (kind=int_kind), intent(in) :: &
-         mth,yr ! month 1-12 ! Noah Day 6/3/2022 adding yr
+         mth,yr,dy ! month 1-12 ! Noah Day 6/3/2022 adding yr, and record number
 
       integer (kind=int_kind), intent(out) :: &
          N_tm, N_lat, N_lon
@@ -290,116 +303,35 @@ use ice_forcing, only: check
     character (char_len_long) :: &        ! input data file names
         ww3_file, &
         varname, &
-        char_yr
+        char_yr, &
+        tmpname
 
         integer (kind=int_kind) :: &
            fid              ! file id for netCDF file
+      
+     real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks)  :: &
+          work              ! output array (real, 8-byte)
 
 if (WIM.eq.1) then
     ! Convert year to character
     ! ND: Find what year the model is in.
-    if (yr.eq.2005) then
-      char_yr = '2005'
-    elseif (yr.eq.2006) then
-      char_yr = '2006'
-    elseif (yr.eq.2007) then
-      char_yr = '2007'
-    elseif (yr.eq.2008) then
-      char_yr = '2008'
-    elseif (yr.eq.2009) then
-      char_yr = '2009'
-    elseif (yr.eq.2010) then
-      char_yr = '2010'
-    elseif (yr.eq.2011) then
-      char_yr = '2011'
-    elseif (yr.eq.2012) then
-      char_yr = '2012'
-    elseif (yr.eq.2013) then
-      char_yr = '2013'
-    elseif (yr.eq.2014) then
-      char_yr = '2014'
-    elseif (yr.eq.2015) then
-      char_yr = '2015'
-    elseif (yr.eq.2016) then
-      char_yr = '2016'
-    elseif (yr.eq.2017) then
-      char_yr = '2017'
-    elseif (yr.eq.2018) then
-      char_yr = '2018'
-    elseif (yr.eq.2019) then
-      char_yr = '2019'
-    elseif (yr.eq.2020) then
-      char_yr = '2020'
-    endif
-    
+    write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth,dy, '.nc'
+
     if (WAVE_METH.eq.1) then
       if (my_task == master_task) then
          write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
-         write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '0X.nc'
+         write(nu_diag,*) '    sub_WW3_dataread file: ', tmpname
+         !write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.dat'
+
       endif
       ! ND: Read in the WW3 file according to which month the model is in. This is really poorly written but it works.
-       if (mth.eq.1) then
          !call check( nf90_open(trim('/Users/a1724548/GitHub/cice-dirs/input/CICE_data/forcing/gx1/CAWCR/MONTHLY/2005/ww3_200501.nc'), NF90_NOWRITE, ncid ))
          if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc'
+            !write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '0101.nc'
+            write(nu_diag,*) '    sub_WW3_dataread tmpname: ', tmpname
          endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.2) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '02.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '02.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.3) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '03.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '03.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.4) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '04.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '04.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.5) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '05.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '05.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.6) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '06.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '06.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.7) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '07.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '07.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.8) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '08.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '08.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.9) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '09.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '09.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.10) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '10.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '10.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.11) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '11.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '11.nc', NF90_NOWRITE, ncid) )
-       elseif (mth.eq.12) then
-         if (my_task == master_task) then
-            write(nu_diag,*) '    sub_WW3_dataread file: ', trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '12.nc'
-         endif
-         call check( nf90_open(trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '12.nc', NF90_NOWRITE, ncid) )
-       endif
+         call check( nf90_open(tmpname, NF90_NOWRITE, ncid) )
+
 
          if (my_task == master_task) then
            write(nu_diag,*) '1st check done'
@@ -417,13 +349,18 @@ if (WIM.eq.1) then
            write(nu_diag,*) 'ND: N_lat is:', N_lat
          endif
          !N_lat = 384 ! grid resolution
-         N_lat = 300
+         N_lat = ny_global !1080
          allocate(ww3_lat(1,N_lat)) ! noah day this used to be (N_lat,1)
-         write(nu_diag,*) 'Number of dimensions', numDims
-         write(nu_diag,*) 'lat done', N_lat
+
          varname = 'LON'! ND: commenting out 'TLON'
          !varname = 'TLON'
          call check( nf90_get_var(ncid, varid, ww3_lat) )
+         if (my_task == master_task) then
+           write(nu_diag,*) 'Number of dimensions', numDims
+          write(nu_diag,*) 'lat done', N_lat
+          write(nu_diag,*) 'min ww3_lat ', minval(ww3_lat)
+          write(nu_diag,*) 'max ww3_lat ', maxval(ww3_lat)
+         endif
          !write(nu_diag,*) ' ww3_lat(1,N_lat) : ', ww3_lat(1,N_lat)
          !write(nu_diag,*) ' ww3_lat(N_lat,1) : ', ww3_lat(N_lat,1)
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
@@ -441,31 +378,69 @@ if (WIM.eq.1) then
          call check( nf90_inquire_variable(ncid, varid, dimids = rhDimIds(:numDims)) )
          call check( nf90_inquire_dimension(ncid, rhDimIds(1), len = N_tm) )
          allocate(ww3_tm(N_tm,1))
-         !write(nu_diag,*) 'time done', N_tm
+         if (my_task == master_task) then
+           write(nu_diag,*) 'min ww3_lon ', minval(ww3_lon)
+           write(nu_diag,*) 'max ww3_lon ', maxval(ww3_lon)
+          write(nu_diag,*) 'time done', N_tm
+         endif
          varname = 'hs'
+         if (my_task == master_task) then
+          write(nu_diag,*) 'HS '
+         endif
          call check( nf90_get_var(ncid, varid, ww3_tm) )
+         if (my_task == master_task) then
+          write(nu_diag,*) 'ww3_tm ', SHAPE(ww3_tm)
+         endif
          allocate(ww3_swh_full(N_lon,N_lat,N_tm))
+         if (my_task == master_task) then
+          write(nu_diag,*) 'allocated', SHAPE(ww3_swh_full)
+         endif
          call check( nf90_inq_varid(ncid, trim(varname), varid) )
-         call check( nf90_get_var(ncid, varid, ww3_swh_full) )
+         if (my_task == master_task) then
+          write(nu_diag,*) 'varname: ', trim(varname)
+         endif
+         status=nf90_get_var(ncid, varid, ww3_swh_full)!call check( nf90_get_var(ncid, varid, ww3_swh_full) )
          ww3_swh_full = ww3_swh_full!c2*eps3*ww3_swh_full
-        !write(nu_diag,*) 'swh done', SHAPE(ww3_swh_full)
+
+         !recnum=1
+         !call ice_open_nc (trim(waveicedatadir) // '/'// trim(char_yr) //'/'// trim(fname_ww3) // trim(char_yr) // '01.nc', fid)
+         !call ice_read_nc(ncid,recnum,varname,work(:,:,:))
+         !call ice_close_nc(fid)
+         !ww3_swh_full = c0
+
+        if (my_task == master_task) then
+         write(nu_diag,*) 'swh done', SHAPE(ww3_swh_full)
+         write(nu_diag,*) 'min swh ', minval(ww3_swh_full)
+         write(nu_diag,*) 'max swh ', maxval(ww3_swh_full)
+         !write(nu_diag,*) 'swh done', SHAPE(work)
+         !write(nu_diag,*) 'min swh ', minval(work)
+         !write(nu_diag,*) 'max swh ', maxval(work)
+        endif
         varname = 'fp'
-         allocate(ww3_fp_full(N_lon,N_lat,N_tm))
-         call check( nf90_inq_varid(ncid, trim(varname), varid) )
-         call check( nf90_get_var(ncid, varid, ww3_fp_full) )
-         !ww3_fp_full = eps3*ww3_fp_full
-         ww3_fp_full = ww3_fp_full
-         !write(nu_diag,*) 'fp done', SHAPE(ww3_fp_full)
-         varname = 'dir' ! True north degrees, wind direction 
+       allocate(ww3_fp_full(N_lon,N_lat,N_tm))
+       call check( nf90_inq_varid(ncid, trim(varname), varid) )
+       call check( nf90_get_var(ncid, varid, ww3_fp_full) )
+       !ww3_fp_full = eps3*ww3_fp_full
+       ww3_fp_full = ww3_fp_full
+       if (my_task == master_task) then
+         write(nu_diag,*) 'fp done', SHAPE(ww3_fp_full)
+         write(nu_diag,*) 'min fp ', minval(ww3_fp_full)
+         write(nu_diag,*) 'max fp ', maxval(ww3_fp_full)
+       endif
+       varname = 'dir' ! True north degrees, wind direction
   	   allocate(ww3_dir_full(N_lon,N_lat,N_tm))
   	   call check( nf90_inq_varid(ncid, trim(varname), varid) )
   	   call check( nf90_get_var(ncid, varid, ww3_dir_full) )
   	   ww3_dir_full = ww3_dir_full!eps1*ww3_dir_full ! in degrees at this point
-  	   !write(nu_diag,*) 'dirs done'
+       if (my_task == master_task) then
+          write(nu_diag,*) 'dirs done'
+          write(nu_diag,*) 'min dir ', minval(ww3_dir_full)
+          write(nu_diag,*) 'max dir ', maxval(ww3_dir_full)
+       endif
   	   call check( nf90_close(ncid))
-      if (my_task == master_task) then
-         write(nu_diag,*) '    -> WAVE DATA LOADED, N_tm=',N_tm
-      endif
+          if (my_task == master_task) then
+             write(nu_diag,*) '    -> WAVE DATA LOADED, N_tm=',N_tm
+          endif
        endif ! WAVE_METH
 endif ! WIM
    end subroutine sub_WW3_dataread

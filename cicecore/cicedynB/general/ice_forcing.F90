@@ -385,6 +385,8 @@
             sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
          elseif (nx_global == 360) then ! access-om2
              sss_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
+         elseif (nx_global == 1440) then ! access-om2-025
+             sss_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
          else                   ! gx3
             sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
          endif
@@ -436,7 +438,9 @@
 
          if (nx_global == 320) then ! gx1
             sst_file = trim(ocn_data_dir)//'/sst_clim_hurrell.dat'
-         elseif (nx_global == 360) then ! access-om2
+         elseif (nx_global == 360) then ! access-om2-10
+             sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
+          elseif (nx_global == 1440) then ! access-om2-025
              sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
          else                   ! gx3
             sst_file = trim(ocn_data_dir)//'/sst.mm.100x116.da'
@@ -1509,7 +1513,7 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(ocn_data_type) == 'access-om2') then ! netcdf
+      elseif (trim(ocn_data_type)=='access-om2') then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2481,7 +2485,7 @@
       character(len=64) :: fieldname !netcdf field name
       character (char_len_long) :: uwind_file_old
       character(len=*), parameter :: subname = '(JRA55_data)'
-      write(nu_diag,*) 'local_debug: ', local_debug
+      !write(nu_diag,*) 'local_debug: ', local_debug
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
@@ -2516,7 +2520,8 @@
       !-------------------------------------------------------------------
 
       uwind_file_old = uwind_file
-      if (uwind_file /= uwind_file_old .and. my_task == master_task) then
+      !if (uwind_file /= uwind_file_old .and. my_task == master_task) then
+      if (my_task == master_task) then
          write(nu_diag,*) subname,' reading forcing file = ',trim(uwind_file)
       endif
 
@@ -2633,9 +2638,9 @@
       endif
 
       
-       vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
-       vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
-      if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
+      !vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      ! vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
 
       ! ND: NOT NEEDED
       !do iblk = 1, nblocks
@@ -2669,7 +2674,9 @@
         do j = 1, ny_block
           do i = 1, nx_block
             if (aice(i,j,iblk) > p1) Tair(i,j,iblk) = min(Tair(i,j,iblk), Tffresh+p1)
-    !        if (Tair(i,j,iblk).lt.185.15) Tair(i,j,iblk) = 185.15 ! ND: 185.15 is coldest ever recorded
+            !if (Tair(i,j,iblk).lt.185.15) Tair(i,j,iblk) = 185.15 ! ND: 185.15 is coldest ever recorded
+            !if (j.gt.(ny_block/2)) uatm_data(i,j,n1,iblk) = c0
+            !if (j.gt.(ny_block/2)) vatm_data(i,j,n1,iblk) = c0
           enddo
         enddo
 
@@ -6255,7 +6262,9 @@ enddo ! block
       use ice_grid, only: hm, tmask, umask
       use ice_global_reductions, only: global_minval, global_maxval
       use ice_restart_shared, only: runtype
-      use ice_calendar, only: myear 
+      use ice_calendar, only: myear
+      use icepack_parameters, only: puny
+      use ice_read_write, only: ice_read_nc_uv
 #ifdef USE_NETCDF
       use netcdf
 #endif
@@ -6278,7 +6287,8 @@ enddo ! block
       integer (kind=int_kind) :: &
         status  , & ! status flag
         nlat    , & ! number of longitudes of data
-        nlon        ! number of latitudes  of data
+        nlon    , & ! number of latitudes  of data
+        nzlev       ! z level of currents
 
       integer (kind=int_kind) :: &
          i, j, iblk       , & ! horizontal indices
@@ -6308,12 +6318,13 @@ enddo ! block
              'SST restoring timescale = ',trestore,' days'
 
          sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
-         
 
         !---------------------------------------------------------------
         ! Read in ocean forcing data from an existing file
         !---------------------------------------------------------------
-        write (nu_diag,*) 'FILE YEAR:', myear
+        write (nu_diag,*) 'ocean mixed layer forcing data file = ', &
+                           trim(sst_file)
+         write (nu_diag,*) 'FILE YEAR:', myear
         call file_year(sst_file,myear)
         write (nu_diag,*) 'ocean mixed layer forcing data file = ', &
                            trim(sst_file)
@@ -6326,11 +6337,11 @@ enddo ! block
           call ice_open_nc(sst_file, fid)
 
 !          status = nf90_inq_dimid(fid,'nlon',dimid)
-          status = nf90_inq_dimid(fid,'xu_ocean',dimid)
+          status = nf90_inq_dimid(fid,'xt_ocean',dimid)
           status = nf90_inquire_dimension(fid,dimid,len=nlon)
 
 !          status = nf90_inq_dimid(fid,'nlat',dimid)
-          status = nf90_inq_dimid(fid,'yu_ocean',dimid)
+          status = nf90_inq_dimid(fid,'yt_ocean',dimid)
           status = nf90_inquire_dimension(fid,dimid,len=nlat)
 
           if( nlon .ne. nx_global ) then
@@ -6346,9 +6357,13 @@ enddo ! block
         do n=1,ndfld
           do m=1,12
             ! Note: netCDF does single to double conversion if necessary
-           if (n >= 3 .and. n <= 4) then
-              call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
-                               field_loc_NEcorner, field_type_vector)
+           !if (n >= 3 .and. n <= 4) then
+           !   call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+           !                    field_loc_NEcorner, field_type_vector)
+           if (n == 3 .or. n == 4) then ! 3D currents
+               nzlev = 1                 ! surface currents
+               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, debug_forcing, &
+                                field_loc_NEcorner, field_type_vector)
            else
                call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
@@ -6396,16 +6411,28 @@ enddo ! block
             sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,1)
             uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,1)
             vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,1)
+            
+            sss(i,j,iblk) = max(sss(i,j,iblk),c0)
+            !sst(i,j,iblk) = max(sst(i,j,iblk) - 273.15,Tf(i,j,iblk))
+
+            ! Making sure current velocities aren't unrealistic
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+
+
             if (runtype.eq.'initial') then ! Freeze/melt is calculated within CICE
                ! Initialise to 1.0 just to begin the run
-               frzmlt(i,j,iblk) = c1
+               frzmlt(i,j,iblk) = -1.0_dbl_kind!(-1)*ocn_frc_m_access(i,j,iblk,1,1)
+               !frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
             else
                frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
             endif
         enddo 
         enddo
 enddo
-
+      if (debug_forcing) then
          if (my_task == master_task)  &
                write (nu_diag,*) 'ocn_data_access_init'
            vmin = global_minval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
@@ -6424,9 +6451,81 @@ enddo
            vmax = global_maxval(ocn_frc_m_access(:,:,:,4,1),distrb_info,umask)
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'vocn',vmin,vmax
+          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'frzmlt',vmin,vmax
+
+
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init2'
+           vmin = global_minval(ocn_frc_m_access(:,:,:,1,2),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,2),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,2,2),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,2),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,3,2),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,2),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,4,2),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,2),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'frzmlt',vmin,vmax
+
+
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init 12'
+           vmin = global_minval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'frzmlt',vmin,vmax
             !endif
      ! endif
 
+
+          if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,1)'
+            vmin = ocn_frc_m_access(10,200,1,1,1)
+            vmax = ocn_frc_m_access(10,200,1,1,1)
+            if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,2)'
+            vmin = ocn_frc_m_access(10,200,1,1,2)
+            vmax = ocn_frc_m_access(10,200,1,1,2)
+            if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,6)'
+            vmin = ocn_frc_m_access(10,200,1,1,6)
+            vmax = ocn_frc_m_access(10,200,1,1,6)
+            if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+      endif
 
 
 
@@ -6544,7 +6643,8 @@ enddo
       character(len=*), parameter :: subname = '(ocn_data_access)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
+      if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access'
     !-------------------------------------------------------------------
     ! monthly data
     !
@@ -6578,33 +6678,60 @@ enddo
         do iblk = 1, nblocks
         ! use sst_data arrays as temporary work space until n=1
         if (ixm /= -99) then  ! first half of month
-          sst_data(:,:,1,iblk) = ocn_frc_m_access(:,:,iblk,n,ixm)
-          sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,mmonth)
+          do i = 1, nx_block
+            do j = 1, ny_block
+               sst_data(i,j,1,iblk) = ocn_frc_m_access(i,j,iblk,n,ixm)
+               sst_data(i,j,2,iblk) = ocn_frc_m_access(i,j,iblk,n,mmonth)
+            enddo
+          enddo
         else                 ! second half of month
           sst_data(:,:,1,iblk) = ocn_frc_m_access(:,:,iblk,n,mmonth)
           sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,ixp)
         endif
-        enddo
+        if (debug_forcing) then
+         if (my_task.eq.master_task) then
+            write(nu_diag,*) 'ixm', ixm
+            write(nu_diag,*) 'ixp', ixp
+            write(nu_diag,*) 'mmonth', mmonth
+         endif
+         endif
+         enddo
+
+
         ! ND: Debugging SST
-      !  write (nu_diag,*) 'Pre interpolation:'
-      !vmin = global_minval(sst,distrb_info,tmask)
-      !     vmax = global_maxval(sst,distrb_info,tmask)
-      !     if (my_task.eq.master_task)  &
-      !         write (nu_diag,*) 'sst',vmin,vmax
-      !         vmin = global_minval(work1,distrb_info,tmask)
-      !     vmax = global_maxval(work1,distrb_info,tmask)
-      !     if (my_task.eq.master_task)  &
-      !         write (nu_diag,*) 'work1',vmin,vmax
+        if (debug_forcing) then
+        if (my_task.eq.master_task) write(nu_diag,*) 'Variable', n
+         if (my_task.eq.master_task) write (nu_diag,*) 'Pre interpolation:'
+            vmin = global_minval(sst,distrb_info,tmask)
+            vmax = global_maxval(sst,distrb_info,tmask)
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+            vmin = global_minval(work1,distrb_info,tmask)
+            vmax = global_maxval(work1,distrb_info,tmask)
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'work1',vmin,vmax
+         
 
-      !         vmin = MAXVAL(sst_data(:,:,1,iblk))
-      !     vmax = MINVAL(sst_data(:,:,1,iblk))
-      !     if (my_task.eq.master_task)  &
-      !         write (nu_diag,*) 'sst_data',vmin,vmax
+            vmin = global_minval(sst_data(:,:,1,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+            vmax = global_maxval(sst_data(:,:,1,:),distrb_info,tmask) !MINVAL(sst_data(:,:,1,iblk))
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst_data',vmin,vmax
+             vmin = global_minval(sst_data(:,:,2,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+            vmax = global_maxval(sst_data(:,:,2,:),distrb_info,tmask)
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst_data2',vmin,vmax
 
-      !         vmin = MAXVAL(sst_data(:,:,2,iblk))
-      !     vmax = MINVAL(sst_data(:,:,2,iblk))
-      !     if (my_task.eq.master_task)  &
-      !         write (nu_diag,*) 'sst_data2',vmin,vmax
+
+            vmin = sst_data(10,200,1,1)
+            vmax = sst_data(10,200,1,1)
+            if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ocn_data_access point (10,200,1,1)',vmin,vmax
+            vmin = sst_data(10,200,2,1)
+            vmax = sst_data(10,200,2,1)
+            if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ocn_data_access point (10,200,2,1)',vmin,vmax
+         endif !debug_forcing
+
 !      vmin = global_minval(sst_data(:,:,1,iblk),distrb_info,tmask)
 !           vmax = global_maxval(sst_data(:,:,1,iblk),distrb_info,tmask)
 !           if (my_task.eq.master_task)  &
@@ -6617,12 +6744,24 @@ enddo
 
         call interpolate_data (sst_data,work1)
 
+        if (debug_forcing) then
+        vmin = work1(10,200,iblk)
+        vmax = work1(10,200,iblk)
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'work1 interp: work1 ',vmin,vmax
+
+         vmin = global_minval(work1(:,:,:),distrb_info,tmask)
+         vmax = global_maxval(work1(:,:,:),distrb_info,tmask)
+         if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'POST interp: work1 ',vmin,vmax
+         endif
+
         ! masking by hm is necessary due to NaNs in the data file
         do j = 1, ny_block
           do i = 1, nx_block
-          !  if (n == 2) sss    (i,j,:) = c0
-          !  if (n == 3) uocn   (i,j,:) = c0
-          !  if (n == 4) vocn   (i,j,:) = c0
+            if (n == 2) sss    (i,j,:) = c0
+            if (n == 3) uocn   (i,j,:) = c0
+            if (n == 4) vocn   (i,j,:) = c0
             do iblk = 1, nblocks
               if (hm(i,j,iblk) == c1) then
                 if (n == 2) sss    (i,j,iblk) = work1(i,j,iblk)
@@ -6666,34 +6805,44 @@ enddo
               uocn(i,j,iblk) = c0
               vocn(i,j,iblk) = c0
             endif
-            if (umask(i,j,iblk) .eqv. .false.) then
-                  ! ND: Setting ocean velocities on land to 0
-                  uocn(i,j,iblk) = c0
-                  vocn(i,j,iblk) = c0
-            endif
+            !if (umask(i,j,iblk) .eqv. .false.) then
+            !      ! ND: Setting ocean velocities on land to 0
+            !      uocn(i,j,iblk) = c0
+            !      vocn(i,j,iblk) = c0
+            !endif
+            ! Turning off velocities in the NH
+            !if (j.gt.(ny_block/2)) uocn(i,j,iblk) = c0
+            !if (j.gt.(ny_block/2)) vocn(i,j,iblk) = c0
+             ! Making sure current velocities aren't unrealistic
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
           enddo
          enddo
         enddo
-        else
-            do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               if (hm(i,j,iblk) == c1) then
-                  sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
-               else ! ND: It is land!
-                  sst(i,j,iblk)  = c0
-                  sss(i,j,iblk)  = c0
-                  uocn(i,j,iblk) = c0
-                  vocn(i,j,iblk) = c0
-               endif
-               if (umask(i,j,iblk) .eqv. .false.) then
-                  ! ND: Setting ocean velocities on land to 0
-                  uocn(i,j,iblk) = c0
-                  vocn(i,j,iblk) = c0
-               endif
-            enddo
-            enddo
-         enddo
+        !else
+         !   do iblk = 1, nblocks
+         !   do j = 1, ny_block
+         !   do i = 1, nx_block
+         !      if (hm(i,j,iblk) == c1) then
+         !         sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
+         !      else ! ND: It is land!
+         !         sst(i,j,iblk)  = c0
+         !         sss(i,j,iblk)  = c0
+         !         uocn(i,j,iblk) = c0
+         !         vocn(i,j,iblk) = c0
+         !      endif
+         !      if (umask(i,j,iblk) .eqv. .false.) then
+         !         ! ND: Setting ocean velocities on land to 0
+         !         uocn(i,j,iblk) = c0
+         !         vocn(i,j,iblk) = c0
+         !      endif
+         !      if (j.gt.(ny_block/2)) uocn(i,j,iblk) = c0
+         !      if (j.gt.(ny_block/2)) vocn(i,j,iblk) = c0
+         !   enddo
+         !   enddo
+         !enddo
         !$OMP END PARALLEL DO
       endif
 
