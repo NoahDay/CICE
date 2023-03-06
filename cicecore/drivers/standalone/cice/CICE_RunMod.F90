@@ -171,6 +171,7 @@ if (WIM.eq.1) then
                deallocate(ww3_lat)
                deallocate(ww3_lon)
                deallocate(ww3_tm)
+               call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
            endif
         endif
 
@@ -315,7 +316,10 @@ use ice_blocks, only: nx_block, ny_block
 if (WIM.eq.1) then
     ! Convert year to character
     ! ND: Find what year the model is in.
-    write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth,dy, '.nc'
+    ! Daily file: 
+    write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, dy, '.nc'
+    ! Monthly file:
+    !write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, '.nc' ! Monthly file
 
     if (WAVE_METH.eq.1) then
       if (my_task == master_task) then

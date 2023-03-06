@@ -2117,8 +2117,8 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
-         write(nu_diag,*) 'ND: varname', trim(varname)
-          write(nu_diag,*) 'ND: status', status
+         !write(nu_diag,*) 'ND: varname', trim(varname)
+         ! write(nu_diag,*) 'ND: status', status
          if (status /= nf90_noerr) then
            call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif

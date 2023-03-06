@@ -6360,10 +6360,12 @@ enddo ! block
            !if (n >= 3 .and. n <= 4) then
            !   call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
            !                    field_loc_NEcorner, field_type_vector)
-           if (n == 3 .or. n == 4) then ! 3D currents
+           if (n == 3 .or. n == 4) then ! 2D currents
                nzlev = 1                 ! surface currents
-               call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, debug_forcing, &
-                                field_loc_NEcorner, field_type_vector)
+               !call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, debug_forcing, &
+               !                 field_loc_NEcorner, field_type_vector)
+               call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+                               field_loc_NEcorner, field_type_vector)
            else
                call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
                                 field_loc_center, field_type_scalar)
@@ -6424,8 +6426,14 @@ enddo ! block
 
             if (runtype.eq.'initial') then ! Freeze/melt is calculated within CICE
                ! Initialise to 1.0 just to begin the run
-               frzmlt(i,j,iblk) = -1.0_dbl_kind!(-1)*ocn_frc_m_access(i,j,iblk,1,1)
+               !frzmlt(i,j,iblk) = -1.0_dbl_kind!(-1)*ocn_frc_m_access(i,j,iblk,1,1)
                !frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
+               !if (j .lt. (ny_block/4)) then
+               !   frzmlt(i,j,iblk) = 1.0_dbl_kind
+               !else
+               !   frzmlt(i,j,iblk) = -1.0_dbl_kind
+               !endif
+               frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
             else
                frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
             endif
@@ -6481,50 +6489,50 @@ enddo
                write (nu_diag,*) 'frzmlt',vmin,vmax
 
 
-         if (my_task == master_task)  &
-               write (nu_diag,*) 'ocn_data_access_init 12'
-           vmin = global_minval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
-           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst',vmin,vmax
-           vmin = global_minval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
-           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sss',vmin,vmax
-           vmin = global_minval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
-           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'uocn',vmin,vmax
-           vmin = global_minval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
-           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'vocn',vmin,vmax
-          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
-           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'frzmlt',vmin,vmax
+         !if (my_task == master_task)  &
+           !    write (nu_diag,*) 'ocn_data_access_init 12'
+           !vmin = global_minval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+           !vmax = global_maxval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'sst',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'sss',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'uocn',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'vocn',vmin,vmax
+         ! vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+         !  vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'frzmlt',vmin,vmax
             !endif
      ! endif
 
 
-          if (my_task == master_task)  &
-               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,1)'
-            vmin = ocn_frc_m_access(10,200,1,1,1)
-            vmax = ocn_frc_m_access(10,200,1,1,1)
-            if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst',vmin,vmax
-         if (my_task == master_task)  &
-               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,2)'
-            vmin = ocn_frc_m_access(10,200,1,1,2)
-            vmax = ocn_frc_m_access(10,200,1,1,2)
-            if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst',vmin,vmax
-         if (my_task == master_task)  &
-               write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,6)'
-            vmin = ocn_frc_m_access(10,200,1,1,6)
-            vmax = ocn_frc_m_access(10,200,1,1,6)
-            if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst',vmin,vmax
+          !if (my_task == master_task)  &
+           !    write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,1)'
+           ! vmin = ocn_frc_m_access(10,200,1,1,1)
+           ! vmax = ocn_frc_m_access(10,200,1,1,1)
+            !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !if (my_task == master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,2)'
+         !   vmin = ocn_frc_m_access(10,200,1,1,2)
+         !   vmax = ocn_frc_m_access(10,200,1,1,2)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !if (my_task == master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,6)'
+         !   vmin = ocn_frc_m_access(10,200,1,1,6)
+         !   vmax = ocn_frc_m_access(10,200,1,1,6)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
       endif
 
 
@@ -6690,47 +6698,47 @@ enddo
         endif
         if (debug_forcing) then
          if (my_task.eq.master_task) then
-            write(nu_diag,*) 'ixm', ixm
-            write(nu_diag,*) 'ixp', ixp
-            write(nu_diag,*) 'mmonth', mmonth
+            !write(nu_diag,*) 'ixm', ixm
+            !write(nu_diag,*) 'ixp', ixp
+            !write(nu_diag,*) 'mmonth', mmonth
          endif
          endif
          enddo
 
 
         ! ND: Debugging SST
-        if (debug_forcing) then
-        if (my_task.eq.master_task) write(nu_diag,*) 'Variable', n
-         if (my_task.eq.master_task) write (nu_diag,*) 'Pre interpolation:'
-            vmin = global_minval(sst,distrb_info,tmask)
-            vmax = global_maxval(sst,distrb_info,tmask)
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst',vmin,vmax
-            vmin = global_minval(work1,distrb_info,tmask)
-            vmax = global_maxval(work1,distrb_info,tmask)
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'work1',vmin,vmax
+        !if (debug_forcing) then
+        !if (my_task.eq.master_task) write(nu_diag,*) 'Variable', n
+         !if (my_task.eq.master_task) write (nu_diag,*) 'Pre interpolation:'
+         !   vmin = global_minval(sst,distrb_info,tmask)
+         !   vmax = global_maxval(sst,distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !   vmin = global_minval(work1,distrb_info,tmask)
+         !   vmax = global_maxval(work1,distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'work1',vmin,vmax
          
 
-            vmin = global_minval(sst_data(:,:,1,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
-            vmax = global_maxval(sst_data(:,:,1,:),distrb_info,tmask) !MINVAL(sst_data(:,:,1,iblk))
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst_data',vmin,vmax
-             vmin = global_minval(sst_data(:,:,2,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
-            vmax = global_maxval(sst_data(:,:,2,:),distrb_info,tmask)
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'sst_data2',vmin,vmax
+         !   vmin = global_minval(sst_data(:,:,1,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+         !   vmax = global_maxval(sst_data(:,:,1,:),distrb_info,tmask) !MINVAL(sst_data(:,:,1,iblk))
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst_data',vmin,vmax
+         !    vmin = global_minval(sst_data(:,:,2,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+         !   vmax = global_maxval(sst_data(:,:,2,:),distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst_data2',vmin,vmax
 
 
-            vmin = sst_data(10,200,1,1)
-            vmax = sst_data(10,200,1,1)
-            if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'ocn_data_access point (10,200,1,1)',vmin,vmax
-            vmin = sst_data(10,200,2,1)
-            vmax = sst_data(10,200,2,1)
-            if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'ocn_data_access point (10,200,2,1)',vmin,vmax
-         endif !debug_forcing
+         !   vmin = sst_data(10,200,1,1)
+         !   vmax = sst_data(10,200,1,1)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access point (10,200,1,1)',vmin,vmax
+         !   vmin = sst_data(10,200,2,1)
+         !   vmax = sst_data(10,200,2,1)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access point (10,200,2,1)',vmin,vmax
+         !endif !debug_forcing
 
 !      vmin = global_minval(sst_data(:,:,1,iblk),distrb_info,tmask)
 !           vmax = global_maxval(sst_data(:,:,1,iblk),distrb_info,tmask)
@@ -6744,17 +6752,17 @@ enddo
 
         call interpolate_data (sst_data,work1)
 
-        if (debug_forcing) then
-        vmin = work1(10,200,iblk)
-        vmax = work1(10,200,iblk)
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'work1 interp: work1 ',vmin,vmax
+        ! if (debug_forcing) then
+        !vmin = work1(10,200,iblk)
+        !vmax = work1(10,200,iblk)
+        ! if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'work1 interp: work1 ',vmin,vmax
 
-         vmin = global_minval(work1(:,:,:),distrb_info,tmask)
-         vmax = global_maxval(work1(:,:,:),distrb_info,tmask)
-         if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'POST interp: work1 ',vmin,vmax
-         endif
+        ! vmin = global_minval(work1(:,:,:),distrb_info,tmask)
+        ! vmax = global_maxval(work1(:,:,:),distrb_info,tmask)
+        ! if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'POST interp: work1 ',vmin,vmax
+        ! endif
 
         ! masking by hm is necessary due to NaNs in the data file
         do j = 1, ny_block

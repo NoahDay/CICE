@@ -748,33 +748,35 @@
                  if (WIM_LONG.ne.0) then
                      !write(nu_diag,*) ' Longitudinal WIM Starting.....'
                      ! Calculate the wavemask for each longitude
-                      wavemask_dyn_vec(:) = 0
-!                      do jj = jlo, jhi
-!                        do ii = ilo, ihi
-!                          if (aice(ii,jj,iblk).gt.puny) then
-!                           icells = icells + 1
-!                           indxi(icells) = ii
-!                           indxj(icells) = jj
-!                           if ((jj.lt.150).and.(jj.gt.0)) then
-!                            wavemask_dyn_vec(ii) = jj
-!                           endif
-!                          endif
-!                        end do
-!                      end do
-                     
-                     do ii = ilo, ihi 
-                       do jj = jlo, jhi! Start the latitude at the bottom of the grid
-                           if (tmask(ii,jj,iblk)) then
-                              icells = icells + 1
-                              indxi(icells) = ii
-                              indxj(icells) = jj
-                              if (aice(ii,jj,iblk).lt.puny) then
-                                 if ((jj.lt.150).and.(jj.gt.0)) wavemask_dyn_vec(ii) = jj
-                                 exit
-                              endif
+                      wavemask_dyn_vec(:) = 216 ! ND: 06-03-23 was 0, changing to 57.5 S
+                      do jj = jlo, jhi
+                        do ii = ilo, ihi
+                          if (aice(ii,jj,iblk).gt.puny) then
+                           icells = icells + 1
+                           indxi(icells) = ii
+                           indxj(icells) = jj
+                           if ((jj.lt.nx_block/2).and.(jj.gt.0)) then
+                            wavemask_dyn_vec(ii) = jj
                            endif
+                          endif
                         end do
-                     end do
+                      end do
+                     
+!                     do ii = ilo, ihi 
+!                       do jj = jlo, jhi! Start the latitude at the bottom of the grid
+!                           if (tmask(ii,jj,iblk)) then
+!                              icells = icells + 1
+!                              indxi(icells) = ii
+!                              indxj(icells) = jj
+!                              if (aice(ii,jj,iblk).lt.puny) then
+!                                 if ((jj.lt.nx_block/2).and.(jj.gt.0)) wavemask_dyn_vec(ii) = jj
+!                                 exit
+!                              endif
+!                           endif
+!                        end do
+!                     end do
+!                     write(nu_diag,*) 'iblk', iblk
+!                     write(nu_diag,*) 'wavemask_dyn_vec', wavemask_dyn_vec
 
                       ! ND: FIX THIS FOR DIFFERENT NUMBER OF HALO CELLS
                       wavemask_dyn_vec(1) = wavemask_dyn_vec(2)
