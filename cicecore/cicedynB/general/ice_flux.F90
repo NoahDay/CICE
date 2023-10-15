@@ -16,7 +16,7 @@
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, max_nstrm, nilyr
-      use ice_constants, only: c0, c1, c5, c10, c20, c180
+      use ice_constants, only: c0, c1, c5, c10, c20, c100, c180
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_indices

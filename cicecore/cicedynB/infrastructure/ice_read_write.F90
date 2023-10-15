@@ -1164,7 +1164,9 @@
         !-------------------------------------------------------------
 
          status = nf90_inq_varid(fid, trim(varname), varid)
- 
+         !write(nu_diag,*) 'ND: varname ', trim(varname)
+         !write(nu_diag,*) 'ND: status ', status
+         !write(nu_diag,*) 'ND: fid ', fid
          if (status /= nf90_noerr) then
            call abort_ice (subname//'ERROR: Cannot find variable '//trim(varname) )
          endif
@@ -2137,11 +2139,29 @@
                   count=(/nx_global,ny_global,1/) )
          endif
       endif                     ! my_task = master_task
+<<<<<<< Updated upstream
+=======
+#ifndef ORCA_GRID
+         status = nf90_get_var( fid, varid, work_g, &
+               start=(/1,1,nrec/), & 
+               count=(/nx_global,ny_global,1/) )
+#else
+         status = nf90_get_var( fid, varid, work_g3)!, &
+         work_g = work_g3!(2:nx_global+1,1:ny_global)
+#endif
+      !endif                     ! my_task = master_task
+      
+
+>>>>>>> Stashed changes
 
     !-------------------------------------------------------------------
     ! optional diagnostics
     !-------------------------------------------------------------------
+<<<<<<< Updated upstream
 
+=======
+      !write(nu_diag,*) 'ND: optional diagnostics '
+>>>>>>> Stashed changes
       if (my_task == master_task .and. diag) then
 !          write(nu_diag,*) & 
 !            'ice_read_global_nc, fid= ',fid, ', nrec = ',nrec, & 

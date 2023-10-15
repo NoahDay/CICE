@@ -163,6 +163,27 @@
             "floe size distribution, perimeter",                  &
             "per unit ice area", c1, c0, ns, f_fsdperim)
 
+<<<<<<< Updated upstream
+=======
+! Noah Day WIM -----------------------------------------------------------------
+      if (f_peak_period(1:1) /= 'x') &
+         call define_hist_field(n_peak_period,"peak_period","1",tstr2D, tcstr, &
+             "peak period of wind and swell waves",  &
+             "from attenuated spectrum in ice", c1, c0,     &
+             ns, f_peak_period)
+      if (f_mean_wave_dir(1:1) /= 'x') &
+          call define_hist_field(n_mean_wave_dir,"mean_wave_dir","1",tstr2D, tcstr, &
+              "mean wave direction of swell waves",  &
+              "from attenuated spectrum in ice", c1, c0,     &
+              ns, f_mean_wave_dir)
+      if (f_pancake_ice(1:1) /= 'x') &
+          call define_hist_field(n_pancake_ice,"pancake_ice","%/m",tstr2D, tcstr, &
+              "pancake ice concentration",  &
+              "from aice", c1, c0,     &
+              ns, f_pancake_ice)
+! ------------------------------------------------------------------------------
+
+>>>>>>> Stashed changes
 
       enddo ! nstreams
 

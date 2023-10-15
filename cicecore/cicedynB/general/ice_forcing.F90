@@ -33,8 +33,13 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound, timer_forcing
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
+<<<<<<< Updated upstream
       use ice_constants, only: c0, c1, c2, c3, c4, c5, c8, c10, c12, c15, c20, &
                                c180, c360, c365, c1000, c3600
+=======
+      use ice_constants, only: c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c12, c15, c20, &
+                               c180, c360, c365, c1000, c3600, c100
+>>>>>>> Stashed changes
       use ice_constants, only: p001, p01, p1, p2, p25, p5, p6
       use ice_constants, only: cm_to_m
       use ice_constants, only: field_loc_center, field_type_scalar, &
@@ -50,7 +55,14 @@
                 get_forcing_atmo, get_forcing_ocn, get_wave_spec, &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
+<<<<<<< Updated upstream
                 read_data_nc_point, interp_coeff
+=======
+                read_data_nc_point, interp_coeff, init_wave_spec, &
+                init_wave_spec_usr, init_wave_spec_init, check, init_wave_spec_long, &
+                init_wave_block
+                ! Noah Day WIM, adding init_wave_spec, init_wave_spec_usr, init_wave_spec_init, check
+>>>>>>> Stashed changes
 
       integer (kind=int_kind), public :: &
          ycycle          , & ! number of years in forcing cycle, set by namelist
@@ -135,8 +147,14 @@
          wave_spec_file,& ! file name for wave spectrum
          oceanmixed_file  ! file name for ocean forcing data
 
+<<<<<<< Updated upstream
       integer (kind=int_kind), parameter :: & 
          nfld = 8   ! number of fields to search for in forcing file
+=======
+      integer (kind=int_kind), parameter :: &
+         nfld = 8, &   ! number of fields to search for in forcing file 
+         ndfld = 4     ! ND number of ocean input variables
+>>>>>>> Stashed changes
 
       ! as in the dummy atm (latm)
       real (kind=dbl_kind), parameter, public :: &
@@ -146,7 +164,8 @@
          frcidf = 0.17_dbl_kind    ! frac of incoming sw in near IR diffuse band
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         ocn_frc_m   ! ocn data for 12 months
+         ocn_frc_m, &  ! ocn data for 12 months
+         ocn_frc_m_access ! ocn data for access
 
       logical (kind=log_kind), public :: &
          restore_ocn                 ! restore sst if true
@@ -170,7 +189,7 @@
       ! PRIVATE:
 
       real (dbl_kind), parameter :: &
-         mixed_layer_depth_default = c20  ! default mixed layer depth in m
+         mixed_layer_depth_default = c100  ! default mixed layer depth in m
 
       logical (kind=log_kind), parameter :: &
          local_debug = .false.   ! local debug flag
@@ -212,6 +231,7 @@
         topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
         botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
            ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+           ocn_frc_m_access(nx_block,ny_block,  max_blocks,ndfld,12), & ! ND: ocn data for 12 months from ACCESS
         topmelt_file(ncat), &
         botmelt_file(ncat), &
          stat=ierr)
@@ -375,7 +395,15 @@
 
       if (trim(ocn_data_type) == 'clim') then
 
-         sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
+         if (nx_global == 320) then ! gx1
+            sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
+         elseif (nx_global == 360) then ! access-om2
+             sss_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
+         elseif (nx_global == 1440) then ! access-om2-025
+             sss_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
+         else                   ! gx3
+            sss_file = trim(ocn_data_dir)//'/sss.mm.100x116.da' ! gx3 only
+         endif
 
          if (my_task == master_task) then
             write (nu_diag,*) ' '
@@ -424,6 +452,10 @@
 
          if (nx_global == 320) then ! gx1
             sst_file = trim(ocn_data_dir)//'/sst_clim_hurrell.dat'
+         elseif (nx_global == 360) then ! access-om2-10
+             sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
+          elseif (nx_global == 1440) then ! access-om2-025
+             sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file)
          else                   ! gx3
             sst_file = trim(ocn_data_dir)//'/sst.mm.100x116.da'
          endif
@@ -496,6 +528,10 @@
 
       if (trim(ocn_data_type) == 'hycom') then
          call ocn_data_hycom_init
+      endif
+
+      if (trim(ocn_data_type) == 'access-om2') then
+         call ocn_data_access_init
       endif
 
       end subroutine init_forcing_ocn
@@ -709,6 +745,8 @@
          call ocn_data_oned
       elseif (trim(ocn_data_type) == 'hycom') then
 !         call ocn_data_hycom(dt)
+      elseif (trim(ocn_data_type) == 'access-om2') then 
+         call ocn_data_access(dt)
 !MHRI: NOT IMPLEMENTED YET
       endif
 
@@ -1486,6 +1524,10 @@
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
       elseif (trim(atm_data_type) == 'JRA55_tx1') then ! netcdf
+         i = index(data_file,'.nc') - 5
+         tmpname = data_file
+         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
+      elseif (trim(ocn_data_type)=='access-om2') then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2457,6 +2499,10 @@
       character(len=64) :: fieldname !netcdf field name
       character (char_len_long) :: uwind_file_old
       character(len=*), parameter :: subname = '(JRA55_data)'
+<<<<<<< Updated upstream
+=======
+      !write(nu_diag,*) 'local_debug: ', local_debug
+>>>>>>> Stashed changes
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
@@ -2491,7 +2537,8 @@
       !-------------------------------------------------------------------
 
       uwind_file_old = uwind_file
-      if (uwind_file /= uwind_file_old .and. my_task == master_task) then
+      !if (uwind_file /= uwind_file_old .and. my_task == master_task) then
+      if (my_task == master_task) then
          write(nu_diag,*) subname,' reading forcing file = ',trim(uwind_file)
       endif
 
@@ -2607,6 +2654,24 @@
          write(nu_diag,*) subname,'fdbg c12intp = ',c1intp,c2intp
       endif
 
+      
+      !vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      ! vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
+
+      ! ND: NOT NEEDED
+      !do iblk = 1, nblocks
+        ! Remove negative Tair_data
+        !do j = 1, ny_block
+        !  do i = 1, nx_block
+        !    if (Tair_data(i,j,n1,iblk).lt.c0) Tair_data(i,j,n1,iblk) = 185.15 ! ND: If Temp (K) < 0 set it to last value
+        !  enddo
+        !enddo
+      !enddo
+      !vmin = global_minval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !vmax = global_maxval(Tair_data(:,:,n1,:),distrb_info,tmask)
+      !if (my_task.eq.master_task) write (nu_diag,*) subname,'fdbg Tair_data',vmin,vmax
+
       ! Interpolate
       call interpolate_data (Tair_data, Tair)
       call interpolate_data (uatm_data, uatm)
@@ -2626,6 +2691,9 @@
         do j = 1, ny_block
           do i = 1, nx_block
             if (aice(i,j,iblk) > p1) Tair(i,j,iblk) = min(Tair(i,j,iblk), Tffresh+p1)
+            !if (Tair(i,j,iblk).lt.185.15) Tair(i,j,iblk) = 185.15 ! ND: 185.15 is coldest ever recorded
+            !if (j.gt.(ny_block/2)) uatm_data(i,j,n1,iblk) = c0
+            !if (j.gt.(ny_block/2)) vatm_data(i,j,n1,iblk) = c0
           enddo
         enddo
 
@@ -5402,3 +5470,1351 @@
 
 !=======================================================================
 
+<<<<<<< Updated upstream
+=======
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+!EOP
+!
+	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+	  integer (kind=int_kind), intent(in)   		    :: dum_wavemask
+	  integer, intent(in)                               :: N_lon !, DUM_METH
+	  real(kind=dbl_kind), dimension(N_lon), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3 !, dumlatloc
+!	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+	  integer                               :: ind_lon
+
+    integer (kind=int_kind), intent(in) :: &
+       iblk    ! block index
+
+    ! local variables
+
+    integer (kind=int_kind) :: &
+       ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+       i, j, len               ! horizontal indices
+
+
+     type (block) :: &
+        this_block         ! block information for current block
+
+	  do lp_b=1,nblocks
+       do lp_i=1,nx_block
+       do lp_j=1,ny_block
+        swh(lp_i,lp_j,lp_b) = c0
+        ppd(lp_i,lp_j,lp_b) = c0
+        mwd(lp_i,lp_j,lp_b) = c0
+       enddo
+       enddo
+      enddo
+
+      !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+!	  ind_lon = floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360))
+
+    ! Find the location at which the the ww3 grid is = 0.
+!write(nu_diag,*) ' ww3_lon', SHAPE(TRANSPOSE(ww3_lon))
+!write(nu_diag,*) ' ww3_lon', SIZE(ww3_lon)
+!write(nu_diag,*) ' abs(ww3_lon)', SIZE(abs(ww3_lon))
+!  ind_lon_ww3 =minval(ww3_lon, mask=ww3_lon.gt.0)
+!  write(nu_diag,*) ' ind_lon_ww3', ind_lon_ww3
+!  ind_lon_ww3 =minval(abs(ww3_lon))
+!  write(nu_diag,*) ' ind_lon_ww3', ind_lon_ww3
+!  write(nu_diag,*) 'minloc(abs(ww3_lon-c0),dim=2)', minloc(abs(ww3_lon-c0),dim=2)
+!  write(nu_diag,*) 'minloc(abs(ww3_lon-c0),dim=1)', minloc(abs(ww3_lon-c0),dim=1)
+
+
+! NOAH DAY START
+ind_lon_ww3 = minloc(abs(ww3_lon-c0),dim=1) ! find the difference in grids
+! CICE starts at lon = 0, ww3 does not.
+
+this_block = get_block(blocks_ice(iblk),iblk)
+ilo = this_block%ilo
+ihi = this_block%ihi
+jlo = this_block%jlo
+jhi = this_block%jhi
+
+
+       !do lp_b=1,nblocks
+
+len = size(dum_swh)
+if (cmt.ne.0) then
+  write(nu_diag,*) ' <---------------  block info: -------------------->'
+  write(nu_diag,*) ' nblocks: ', nblocks
+  write(nu_diag,*) ' ind_lon: ', ind_lon
+  write(nu_diag,*) ' nx_block: ', nx_block
+  !write(nu_diag,*) ' dum_swh: ', dum_swh
+  !write(nu_diag,*) ' swh: ', SHAPE(swh(:,dum_wavemask,:))
+  write(nu_diag,*) ' N_lon: ', N_lon
+  write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+  write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+  write(nu_diag,*) '<-------------------------------------------------->'
+end if
+ind_lon = ind_lon_ww3(1)-1 ! 36th element is 359.93750000000000
+
+i = ilo ! index for nx_block
+j = 1 ! block index
+
+do lp=1,N_lon
+    if (lp+ind_lon.gt.N_lon) then ! if index exceeds the length of the data
+      if (dum_swh(lp+ind_lon-N_lon).gt.puny.and.dum_fp(lp+ind_lon-N_lon).gt.puny) then
+         swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon-N_lon)
+         ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon-N_lon)
+         !if (pi*dum_mwd(lp+ind_lon-N_lon)/c180.gt.pi/2.and.pi*dum_mwd(lp+ind_lon-N_lon)/c180.lt.3*pi/2) then
+           mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon-N_lon)/c180
+        ! else
+        !   mwd(i,dum_wavemask,j) = c0
+        ! end if
+      endif
+  else ! feed the horizontally translated data into CICE
+    if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+       swh(i,dum_wavemask,j) = dum_swh(lp+ind_lon)
+       ppd(i,dum_wavemask,j) = c1/dum_fp(lp+ind_lon)
+       !if (pi*dum_mwd(lp+ind_lon)/c180.gt.2*pi/3.and.pi*dum_mwd(lp+ind_lon)/c180.lt.4*pi/3) then
+         mwd(i,dum_wavemask,j) = pi*dum_mwd(lp+ind_lon)/c180
+       !else
+      !   mwd(i,dum_wavemask,j) = c0
+       !end if
+    endif
+  end if ! lp+ind_lon
+  i = i + 1 ! tick up until i = ihi
+  if (mod(i,ihi+1).eq.0) then
+    i = ilo ! reset nx_block index, 1 is a ghost cell
+    j = j + 1 ! set for the next block
+  end if
+end do
+
+call ice_HaloUpdate (swh,             halo_info, &
+                     field_loc_center,  field_type_scalar)
+call ice_HaloUpdate (ppd,             halo_info, &
+                    field_loc_center,  field_type_scalar)
+call ice_HaloUpdate (mwd,             halo_info, &
+                     field_loc_center,  field_type_scalar)
+
+
+! GHOST CELLS
+! Replicate the value for ilo into the ghost cells
+!do j=2,nblocks
+!  this_block = get_block(blocks_ice(j),j)
+!  ilo = this_block%ilo
+!  ihi = this_block%ihi
+!  jlo = this_block%jlo
+!  jhi = this_block%jhi
+!  do i = 1,ilo-1
+!    swh(i,dum_wavemask,j) = swh(ilo,dum_wavemask,j)
+!    ppd(i,dum_wavemask,j) = ppd(ilo,dum_wavemask,j)
+!    mwd(i,dum_wavemask,j) = mwd(ilo,dum_wavemask,j)
+!  end do
+!end do
+
+
+!  ! now do it for the block below
+!!  j = j-1 ! block below
+!!  this_block = get_block(blocks_ice(j),j)
+!!  ilo = this_block%ilo
+!!  ihi = this_block%ihi
+!!  jlo = this_block%jlo
+!!  jhi = this_block%jhi
+!!  do i = ihi+1,nx_block
+!!    swh(i,dum_wavemask,j) = swh(ilo,dum_wavemask,j+1) ! now j+1 = j
+!!    ppd(i,dum_wavemask,j) = ppd(ilo,dum_wavemask,j+1)
+!!    mwd(i,dum_wavemask,j) = mwd(ilo,dum_wavemask,j+1)
+!!  end do
+!!end do
+
+
+! at end
+!do j=1,nblocks
+!  this_block = get_block(blocks_ice(j),j)
+!  ilo = this_block%ilo
+!  ihi = this_block%ihi
+!  jlo = this_block%jlo
+!  jhi = this_block%jhi
+!  do i = ihi,nx_block
+!    swh(i,dum_wavemask,j) = swh(ihi,dum_wavemask,j)
+!    ppd(i,dum_wavemask,j) = ppd(ihi,dum_wavemask,j)
+!    mwd(i,dum_wavemask,j) = mwd(ihi,dum_wavemask,j)
+!  end do
+!end do
+
+
+
+
+
+
+!if (iblk.lt.12) then
+!do lp_b=1,nblocks
+
+!do lp=1,nx_block!-ind_lon ! loop from 1 to dum_wavemask position
+!  if (dum_swh(lp+90).gt.puny.and.dum_fp(lp).gt.puny) then
+!    swh(lp,40,lp_b) = c1
+
+          !write(nu_diag,*) 'SWH in initialisation:', dum_swh(lp+ind_lon)
+          !write(nu_diag,*) 'puny is: ', puny
+	 !if (dum_swh(lp).gt.puny.and.dum_fp(lp).gt.puny) then
+   !if (lp_b.eq.1) swh(:,dum_wavemask,lp_b) = c1
+   !if (lp_b.eq.2) swh(nx_block+1-lp,dum_wavemask,lp_b) = c2
+   !if (lp_b.eq.3) swh(nx_block+1-lp,dum_wavemask,lp_b) = c3
+   !if (lp_b.eq.4) swh(nx_block+1-lp,dum_wavemask,lp_b) = c4
+   !if (lp_b.eq.5) swh(nx_block+1-lp,dum_wavemask,lp_b) = c5
+   !if (lp_b.eq.6) swh(nx_block+1-lp,dum_wavemask,lp_b) = c6
+   !if (lp_b.eq.7) swh(nx_block+1-lp,dum_wavemask,lp_b) = c7
+   !if (lp_b.eq.8) swh(nx_block+1-lp,dum_wavemask,lp_b) = c8
+   !if (lp_b.eq.9) swh(nx_block+1-lp,dum_wavemask,lp_b) = c9
+   !if (lp_b.eq.10) then
+  !   swh(nx_block+1-lp,dum_wavemask,lp_b) = c10
+   !else
+  !   swh(lp,dum_wavemask,lp_b) = c1
+  ! endif
+
+
+  	  !swh(nx_block+1-lp,dum_wavemask,lp_b) = !dum_swh(lp)!+ind_lon)
+!		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp+ind_lon)
+!write(nu_diag,*) ' swh :', dum_swh(lp), dum_swh(lp+ind_lon)
+
+
+		  !if (dum_mwd(lp+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp+ind_lon)/c180
+     	  !endif
+		! else
+		 ! swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		  !mwd(lp,dum_wavemask,lp_b) = c0
+!	end if ! lp gt
+!end do
+!end do
+!end if ! iblk
+
+
+      !  enddo ! end lp=1,360-ind_lon ! above the wave mask
+    !    do lp=363-ind_lon,nx_block
+		! if (dum_swh(lp-360+ind_lon).gt.puny.and.dum_fp(lp-360+ind_lon).gt.puny) then
+		 ! swh(lp,dum_wavemask,lp_b) = c1!dum_swh(lp-360+ind_lon)
+		 ! ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp-360+ind_lon)
+		  !if (dum_mwd(lp-360+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+     	!   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp-360+ind_lon)/c180
+     	  !endif
+		! else
+		 ! swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		 ! mwd(lp,dum_wavemask,lp_b) = c0
+		 !endif
+    !    enddo ! end lp=361-ind_lon,nx_block
+  !     enddo ! end lp_b=1,nblocks
+
+  ! NOAH DAY END
+
+
+!WIM START
+     !write(nu_diag,*) ' ind_lon     : ', floor(mod(c180*TLON(dum_wavemask,1,1)/pi,c360)) + 90
+     !write(nu_diag,*) ' ind_lon     : ', floor(mod(c180*TLON(1,dum_wavemask,1)/pi,c360)) + 90
+
+! do lp_b=1,nblocks
+!  do lp=1,360-ind_lon
+          !write(nu_diag,*) 'SWH in initialisation:', dum_swh(lp+ind_lon)
+          !write(nu_diag,*) 'puny is: ', puny
+!		 if (dum_swh(lp+ind_lon).gt.puny.and.dum_fp(lp+ind_lon).gt.puny) then
+!  		  swh(lp,dum_wavemask,lp_b) = dum_swh(lp+ind_lon)
+!  		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp+ind_lon)
+!write(nu_diag,*) ' swh :', dum_swh(lp), dum_swh(lp+ind_lon)
+
+
+		  !if (dum_mwd(lp+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp+ind_lon)/c180
+     	  !endif
+		 !else
+  		  !swh(lp,dum_wavemask,lp_b) = c0
+  		  !ppd(lp,dum_wavemask,lp_b) = c0
+  		  !mwd(lp,dum_wavemask,lp_b) = c0
+!		 endif
+!        enddo ! end lp=1,360-ind_lon
+!        do lp=363-ind_lon,nx_block
+!		 if (dum_swh(lp-360+ind_lon).gt.puny.and.dum_fp(lp-360+ind_lon).gt.puny) then
+!		  swh(lp,dum_wavemask,lp_b) = dum_swh(lp-360+ind_lon)
+!		  ppd(lp,dum_wavemask,lp_b) = c1/dum_fp(lp-360+ind_lon)
+		  !if (dum_mwd(lp-360+ind_lon).gt.c180) then
+     	  ! mwd(lp,dum_wavemask,lp_b) = pi*(dum_mwd(lp+ind_lon)-c360)/c180
+     	  !else
+!     	   mwd(lp,dum_wavemask,lp_b) = pi*dum_mwd(lp-360+ind_lon)/c180
+     	  !endif
+		 !else
+		  !swh(lp,dum_wavemask,lp_b) = c0
+		  !ppd(lp,dum_wavemask,lp_b) = c0
+		  !mwd(lp,dum_wavemask,lp_b) = c0
+!		 endif
+!        enddo ! end lp=361-ind_lon,nx_block
+!       enddo ! end lp_b=1,nblocks
+! WIM END
+!len = 1
+!do lp_b=1,nblocks
+
+!end do
+
+      end subroutine init_wave_spec
+
+!=======================================================================
+!BOP
+!
+! !ROUTINE: init_wave_spec_usr
+!
+! !DESCRIPTION:
+!
+!  Initialize wave spectrum: significant wave height and peak period (call prior to reading restart data)
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine init_wave_spec_usr(dum_wavemask)
+!
+! !USES:
+!
+      use ice_domain, only: nblocks
+      use ice_flux, only: swh, ppd, mwd
+      use m_prams_waveice, only: pi
+      use ice_grid, only: tlon, tlat
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+!
+!EOP
+!
+	  integer (kind=int_kind)    		    			:: lp, lp_b,lp_i,lp_j
+	  integer (kind=int_kind), intent(in)   		    :: dum_wavemask
+
+	  do lp_b=1,nblocks
+       do lp_i=1,nx_block
+       do lp_j=1,ny_block
+        swh(lp_i,lp_j,lp_b) = c0
+        ppd(lp_i,lp_j,lp_b) = c0
+        mwd(lp_i,lp_j,lp_b) = c0
+       enddo
+       enddo
+      enddo
+
+       do lp_b=1,nblocks
+        do lp=1,nx_block
+         swh(lp,dum_wavemask,lp_b) = c3 ! 0.28_dbl_kind !
+         ppd(lp,dum_wavemask,lp_b) = c10
+         mwd(lp,dum_wavemask,lp_b) = pi!7d0*pi/6d0
+        enddo
+       enddo
+
+      end subroutine init_wave_spec_usr
+  !=======================================================================
+  !BOP
+  !
+  ! !ROUTINE: init_wave_spec_long
+  !
+  ! !DESCRIPTION:
+  !
+  !  Initialize wave spectrum per longitude: significant wave height and peak period (call prior to reading restart data)
+  !
+  ! !REVISION HISTORY:
+  !
+  ! author: N Day, U Adelaide
+  !
+  ! !INTERFACE:
+  !
+        subroutine init_wave_spec_long(dum_wavemask_vec,dum_swh,dum_fp,dum_mwd,N_lon,N_lat,iblk)
+  !
+  ! !USES:
+  !
+        use ice_flux, only: swh, ppd, mwd
+        use m_prams_waveice, only: pi, ww3_lat, ww3_lon, ww3_dir, cmt
+        use netcdf
+        use ice_grid, only: tlon, tlat
+        use icepack_parameters, only: puny ! Noah Day WIM
+        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
+        use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+        use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global ! Noah Day WIM
+        use ice_communicate, only: my_task, master_task
+
+  !
+  ! !INPUT/OUTPUT PARAMETERS:
+  !
+  !
+  !EOP
+  !
+  	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+  	  integer (kind=int_kind), dimension(nx_block), intent(in)  :: dum_wavemask_vec
+      !integer (kind=int_kind)   		    :: dum_wavemask
+  	  integer, intent(in)                               :: N_lon, N_lat !, DUM_METH
+  	  real(kind=dbl_kind), dimension(N_lon,N_lat), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+      real(kind=dbl_kind)                  :: dumlon
+
+  	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3, ind_lon_dim !, dumlatloc
+  !	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+  	  integer                              :: ind_lon
+
+      integer (kind=int_kind), intent(in) :: &
+         iblk    ! block index
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         i, j, len               ! horizontal indices
+
+
+       type (block) :: &
+          this_block         ! block information for current block
+
+  	  do lp_b=1,nblocks
+         do lp_i=1,nx_block
+         do lp_j=1,ny_block
+          swh(lp_i,lp_j,lp_b) = c0
+          ppd(lp_i,lp_j,lp_b) = c0
+          mwd(lp_i,lp_j,lp_b) = c0
+         enddo
+         enddo
+        enddo
+
+  !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+
+  ! NOAH DAY START
+  this_block = get_block(blocks_ice(iblk),iblk)
+  ilo = this_block%ilo
+  ihi = this_block%ihi
+  jlo = this_block%jlo
+  jhi = this_block%jhi
+
+  if (cmt.ne.0) then
+    write(nu_diag,*) '     c180*TLON(1,dum_wavemask_vec(1),1)/pi:', c180*TLON(1,dum_wavemask_vec(1),1)/pi
+    write(nu_diag,*) '    mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360):', mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)
+    write(nu_diag,*) '     floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)) :', floor(mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360))
+    write(nu_diag,*) '     minloc(abs(ww3_lon-ind_lon),dim=2):', minloc(abs(ww3_lon-ind_lon),dim=2)
+    write(nu_diag,*) '     minloc(abs(ww3_lon-ind_lon),dim=1):', minloc(abs(ww3_lon-ind_lon),dim=1)
+    !write(nu_diag,*) '     ind_lon:', ind_lon
+    !write(nu_diag,*) '     ind_lon_ww3:', ind_lon_ww3
+    !write(nu_diag,*) '     ind_lon_ww3(1):', ind_lon_ww3(1)
+    write(nu_diag,*) '        ww3_lon :',    ww3_lon
+    write(nu_diag,*) ' <---------------  block info: -------------------->'
+    write(nu_diag,*) ' nblocks: ', nblocks
+    !write(nu_diag,*) ' ind_lon: ', ind_lon
+    !write(nu_diag,*) ' ind_lon_dim: ', ind_lon_dim
+    write(nu_diag,*) ' nx_block: ', nx_block
+    write(nu_diag,*) ' ilo: ', ilo
+    write(nu_diag,*) ' ihi: ', ihi
+    write(nu_diag,*) ' dum_wavemask_vec(1): ', dum_wavemask_vec(1)
+    write(nu_diag,*) ' block number: ', iblk
+    write(nu_diag,*) ' nx_global: ', nx_global
+    write(nu_diag,*) ' dumlon: ', dumlon
+    write(nu_diag,*) ' dumlonloc: ', dumlonloc
+    write(nu_diag,*) ' dumlonloc(1): ', dumlonloc(1)
+    write(nu_diag,*) ' tlon loc: ', c180*tlon(dumlonloc,dum_wavemask_vec(1),iblk)/pi
+    write(nu_diag,*) ' ww3 lon loc: ', c180*ww3_lon(dumlonloc,dum_wavemask_vec(1))/pi
+    write(nu_diag,*) ' my task: ', my_task
+    write(nu_diag,*) ' master_task: ', master_task
+    write(nu_diag,*) ' TLON bound', mod(c180*TLON(ilo,dum_wavemask_vec(1),iblk)/pi,c360), mod(c180*TLON(ihi,dum_wavemask_vec(1),iblk)/pi,c360)
+    write(nu_diag,*) ' ww3 bound (1,180)', mod(c180*ww3_lon(1,dum_wavemask_vec(1))/pi,c360), mod(c180*ww3_lon(180,dum_wavemask_vec(1))/pi,c360)
+    write(nu_diag,*) ' TLON shape', SHAPE(tlon)
+    write(nu_diag,*) ' ww3_lon shape', SHAPE(ww3_lon)
+    !write(nu_diag,*) ' dum_swh: ', dum_swh
+    write(nu_diag,*) ' swh: ', SHAPE(swh)
+    write(nu_diag,*) ' N_lon: ', N_lon
+    write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+   !write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+    write(nu_diag,*) '<-------------------------------------------------->'
+  end if
+
+! Find the minimum block longitude
+dumlon =  mod(c180*TLON(1,dum_wavemask_vec(1),iblk)/pi +c360 ,c360)
+! Find the closest match on the WW3 grid
+dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
+!write(nu_diag,*) 'BLOCK NUMBER : ', iblk
+!write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
+!write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
+!write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
+
+ do lp_b = 1,nblocks ! should be iblk
+  do lp_i=ilo,ihi
+    ! Adapting the WW3 index for the current block/processor
+    i = lp_i-1 + dumlonloc(1)
+    !write(nu_diag,*) ' lp_i: ', lp_i
+    !write(nu_diag,*) ' i: ', i
+
+    if (i.lt.N_lon) then
+      if (dum_wavemask_vec(lp_i).gt.0) then ! If there is a valid wave mask then read in waves
+         j = dum_wavemask_vec(lp_i)
+         !write(nu_diag,*) 'ww3_lon: ',mod(c180*ww3_lon(i,j)/pi + c360,c360)
+         !write(nu_diag,*) 'TLON: ', mod(c180*TLON(lp_i,j,iblk)/pi + c360,c360)
+
+         if (dum_swh(i,j).gt.puny.and.dum_fp(i,j).gt.puny) then
+         !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+         !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i,1) + 360,c360)
+            swh(lp_i,j,lp_b) = dum_swh(i,j)
+            ppd(lp_i,j,lp_b) = c1/dum_fp(i,j) ! Converting to peak period
+            mwd(lp_i,j,lp_b) = dum_mwd(i,j)*c2*pi/c360 ! Converting to Radians
+         else
+            swh(lp_i,j,lp_b) = c0
+            ppd(lp_i,j,lp_b) = c0
+            mwd(lp_i,j,lp_b) = c0
+         endif
+      endif
+    else
+      ! Exceeded dimension, time to start over from 1.
+      if (dum_wavemask_vec(lp_i).gt.0) then
+         j = dum_wavemask_vec(lp_i)
+         if (dum_swh(i-N_lon,j).gt.puny.and.dum_fp(i-N_lon,j).gt.puny) then
+         
+         !write(nu_diag,*) ' CICE lon: ', mod(c180*TLON(lp_i,dum_wavemask_vec(1),iblk)/pi + c360,c360)
+         !write(nu_diag,*) ' WW3 lon: ', mod(ww3_lon(i-N_lon,1) + 360,c360)
+            swh(lp_i,j,lp_b) = dum_swh(i-N_lon,j)
+            ppd(lp_i,j,lp_b) = c1/dum_fp(i-N_lon,j) ! Converting to peak period
+            mwd(lp_i,j,lp_b) = dum_mwd(i-N_lon,j)*c2*pi/c360 ! Converting to Radians
+         else
+            swh(lp_i,j,lp_b) = c0
+            ppd(lp_i,j,lp_b) = c0
+            mwd(lp_i,j,lp_b) = c0
+         endif
+      endif
+    end if
+  end do ! wave mask
+enddo ! block
+
+
+
+  call ice_HaloUpdate (swh,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ppd,             halo_info, &
+                      field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (mwd,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+
+  end subroutine init_wave_spec_long
+
+
+  !=======================================================================
+  !BOP
+  !
+  ! !ROUTINE: init_wave_block
+  !
+  ! !DESCRIPTION:
+  !
+  !  Distribute the read in wave statistics to each block
+  !
+  ! !REVISION HISTORY:
+  !
+  ! author: N Day, U Adelaide
+  !
+  ! !INTERFACE:
+  !
+        subroutine init_wave_block(dum_swh,dum_fp,dum_mwd,N_lon,N_lat)
+  !
+  ! !USES:
+  !
+        use ice_flux, only: swh, ppd, mwd
+        use m_prams_waveice, only: pi, ww3_lat, ww3_lon, ww3_dir, cmt, &
+          ww3_swh_blk, ww3_fp_blk, ww3_dir_blk
+        use netcdf
+        use ice_grid, only: tlon, tlat
+        use icepack_parameters, only: puny ! Noah Day WIM
+        use ice_blocks, only: block, get_block, nx_block, ny_block
+        use ice_domain, only: blocks_ice, nblocks, halo_info ! Noah Day WIM
+        use ice_boundary, only: ice_HaloUpdate ! Noah Day WIM
+        use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global ! Noah Day WIM
+
+  !
+  ! !INPUT/OUTPUT PARAMETERS:
+  !
+  !
+  !EOP
+  !
+  	  integer (kind=int_kind)    		    			:: lp,lp_b,lp_i,lp_j
+      !integer (kind=int_kind)   		    :: dum_wavemask
+      integer, intent(in)                               :: N_lon, N_lat
+  	  real(kind=dbl_kind), dimension(N_lon,N_lat), intent(in) :: dum_swh, dum_fp, dum_mwd
+
+  	  integer, dimension(1)                 :: dumlonloc, ind_lon_ww3 !, dumlatloc
+  !	  real(kind=dbl_kind)                          :: dumlat, dumlon, dumswh
+  	  integer                               :: ind_lon
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         i, j, len               ! horizontal indices
+
+
+       type (block) :: &
+          this_block         ! block information for current block
+
+      ! Allocate the block variables
+      allocate(ww3_swh_blk(nx_block,ny_block,nblocks))
+      allocate(ww3_fp_blk(nx_block,ny_block,nblocks))
+      allocate(ww3_dir_blk(nx_block,ny_block,nblocks))
+
+  	  do lp_b=1,nblocks
+         do lp_i=1,nx_block
+         do lp_j=1,ny_block
+          ww3_swh_blk(lp_i,lp_j,lp_b) = c0
+          ww3_fp_blk(lp_i,lp_j,lp_b) = c0
+          ww3_dir_blk(lp_i,lp_j,lp_b) = c0
+         enddo
+         enddo
+        enddo
+
+  !!!!!!!!!!!!!!!!!!!!!  WW3  !!!!!!!!!!!!!!!!!!!!!
+
+  ! Initialise the indices for the full data
+  i = 1
+  j = 1
+  do lp_b = 1,nblocks
+
+    this_block = get_block(blocks_ice(lp_b),lp_b)
+    ilo = this_block%ilo
+    ihi = this_block%ihi
+    jlo = this_block%jlo
+    jhi = this_block%jhi
+
+    !if (cmt.ne.0) then
+      write(nu_diag,*) ' <---------------  block info: -------------------->'
+      write(nu_diag,*) ' nblocks: ', nblocks
+      write(nu_diag,*) ' ind_lon: ', ind_lon
+      write(nu_diag,*) ' nx_block: ', nx_block
+      write(nu_diag,*) ' ilo: ', ilo
+      write(nu_diag,*) ' ihi: ', ihi
+      !write(nu_diag,*) ' dum_swh: ', dum_swh
+      write(nu_diag,*) ' swh: '!, SHAPE(swh(:,dum_wavemask,:))
+      write(nu_diag,*) ' dum_swh: ', SHAPE(dum_swh)
+      write(nu_diag,*) ' ind_lon_ww3', SHAPE(ind_lon_ww3)
+      write(nu_diag,*) '<-------------------------------------------------->'
+    !end if
+
+    ! Loop over the blocks to distribute the map
+    do lp_i = ilo,ihi
+      do lp_j = jlo,jhi
+        i = lp_i - 1 ! Start at 1
+        j = lp_j
+        ww3_swh_blk(lp_i,lp_j,lp_b) = dum_swh(i,j)
+        ww3_fp_blk(lp_i,lp_j,lp_b) = dum_fp(i,j)
+        ww3_dir_blk(lp_i,lp_j,lp_b) = dum_mwd(i,j)
+      enddo
+    enddo
+
+
+
+  enddo ! lp_b
+
+  call ice_HaloUpdate (ww3_swh_blk,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ww3_fp_blk,             halo_info, &
+                      field_loc_center,  field_type_scalar)
+  call ice_HaloUpdate (ww3_dir_blk,             halo_info, &
+                       field_loc_center,  field_type_scalar)
+
+  end subroutine init_wave_block
+
+
+!=======================================================================
+!BOP
+!
+! !ROUTINE: check
+!
+! !DESCRIPTION:
+!
+!  For WW3 netcdf data
+!
+! !REVISION HISTORY:
+!
+! author: L Bennetts, U Adelaide
+!
+! !INTERFACE:
+!
+      subroutine check(status)
+      use netcdf
+      integer, intent ( in) :: status
+       if(status /= nf90_noerr) then
+        write(nu_diag,*) trim(nf90_strerror(status))
+       stop "Stopped"
+      end if
+     end subroutine check
+
+
+
+
+
+! Noah Day WIM =======================================================================
+
+     subroutine ocn_data_access_init
+
+! Reads ocean output for ACCESS-OM2
+!
+! List of ocean forcing fields: Note that order is important!
+! (order is determined by field list in vname).
+!
+! For ocean mixed layer-----------------------------units
+!
+! 1  sst------temperature---------------------------(K)
+! 2  sss------salinity------------------------------(psu=ppt)
+! 3  u--------surface u current---------------------(m/s)
+! 4  v--------surface v current---------------------(m/s)
+!
+! Fields 3, 4 are on the U-grid; 1, 2 are
+! on the T-grid.
+
+! authors: Noah Day, UAdl (adapted from ocn_data_ncar_init)
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_domain_size, only: max_blocks
+      use ice_domain, only: nblocks, distrb_info
+      use ice_flux, only: sss, sst, Tf, uocn, vocn, frzmlt
+      use ice_grid, only: hm, tmask, umask
+      use ice_global_reductions, only: global_minval, global_maxval
+      use ice_restart_shared, only: runtype
+      use ice_calendar, only: myear
+      use icepack_parameters, only: puny
+      use ice_read_write, only: ice_read_nc_uv
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+
+      integer (kind=int_kind) :: &
+        n   , & ! field index
+        m   , & ! month index
+        nrec, & ! record number for direct access
+        nbits
+
+      character(char_len) :: &
+        vname(ndfld) ! variable names to search for in file
+      data vname /  &
+           'sst',      'sss',     'u',     'v' /
+
+      integer (kind=int_kind) :: &
+       ! fid        , & ! file id
+        dimid          ! dimension id
+
+      integer (kind=int_kind) :: &
+        status  , & ! status flag
+        nlat    , & ! number of longitudes of data
+        nlon    , & ! number of latitudes  of data
+        nzlev       ! z level of currents
+
+      integer (kind=int_kind) :: &
+         i, j, iblk       , & ! horizontal indices
+         fid                  ! file id for netCDF file
+
+      character (char_len) :: &
+         fieldname            ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1
+
+      real (kind=dbl_kind) :: &
+          vmin, vmax
+
+      character(len=*), parameter :: subname = '(ocn_data_access_init)'
+
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      if (my_task == master_task) then
+
+         write (nu_diag,*) 'WARNING: evp_prep calculates surface tilt'
+         write (nu_diag,*) 'WARNING: stress from geostrophic currents,'
+         write (nu_diag,*) 'WARNING: not data from ocean forcing file.'
+         write (nu_diag,*) 'WARNING: Alter ice_dyn_evp.F90 if desired.'
+
+         if (restore_ocn) write (nu_diag,*)  &
+             'SST restoring timescale = ',trestore,' days'
+
+         sst_file = trim(ocn_data_dir)//'/'//trim(oceanmixed_file) ! not just sst
+
+        !---------------------------------------------------------------
+        ! Read in ocean forcing data from an existing file
+        !---------------------------------------------------------------
+        write (nu_diag,*) 'ocean mixed layer forcing data file = ', &
+                           trim(sst_file)
+         write (nu_diag,*) 'FILE YEAR:', myear
+        call file_year(sst_file,myear)
+        write (nu_diag,*) 'ocean mixed layer forcing data file = ', &
+                           trim(sst_file)
+
+      endif ! master_task
+
+      if (trim(ocn_data_format) == 'nc') then
+#ifdef USE_NETCDF
+        if (my_task == master_task) then
+          call ice_open_nc(sst_file, fid)
+
+!          status = nf90_inq_dimid(fid,'nlon',dimid)
+          status = nf90_inq_dimid(fid,'xt_ocean',dimid)
+          status = nf90_inquire_dimension(fid,dimid,len=nlon)
+
+!          status = nf90_inq_dimid(fid,'nlat',dimid)
+          status = nf90_inq_dimid(fid,'yt_ocean',dimid)
+          status = nf90_inquire_dimension(fid,dimid,len=nlat)
+
+          if( nlon .ne. nx_global ) then
+            call abort_ice (error_message=subname//'ice: ocn frc file nlon ne nx_global', &
+               file=__FILE__, line=__LINE__)
+          endif
+          if( nlat .ne. ny_global ) then
+            call abort_ice (error_message=subname//'ice: ocn frc file nlat ne ny_global', &
+               file=__FILE__, line=__LINE__)
+          endif
+        endif ! master_task
+       ! Read in ocean forcing data for all 12 months
+        do n=1,ndfld
+          do m=1,12
+            ! Note: netCDF does single to double conversion if necessary
+           !if (n >= 3 .and. n <= 4) then
+           !   call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+           !                    field_loc_NEcorner, field_type_vector)
+           if (n == 3 .or. n == 4) then ! 2D currents
+               nzlev = 1                 ! surface currents
+               !call ice_read_nc_uv(fid, m, nzlev, vname(n), work1, debug_forcing, &
+               !                 field_loc_NEcorner, field_type_vector)
+               call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+                               field_loc_NEcorner, field_type_vector)
+           else
+               call ice_read_nc(fid, m, vname(n), work1, debug_forcing, &
+                                field_loc_center, field_type_scalar)
+           endif
+            if (n.eq.1) then
+               ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:) - 273.15 ! Converting from K to C
+            else
+               ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:)
+            endif
+          enddo               ! month loop
+        enddo               ! field loop
+
+
+        if (my_task == master_task) call ice_close_nc(fid)
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(sst_file), &
+          file=__FILE__, line=__LINE__)
+#endif
+
+
+ !  do iblk = 1, nblocks
+ !       do j = 1, ny_block
+ !       do i = 1, nx_block
+ !          ocn_frc_m_access(i,j,iblk,1,1) = max(ocn_frc_m_access(i,j,iblk,1,1) ,Tf(i,j,iblk)) ! Making sure sst is not less than freezing temperature
+ !          ocn_frc_m_access(i,j,iblk,2,1) = max(ocn_frc_m_access(i,j,iblk,2,1), c0) ! Making sure sss is not negative
+ !          if (ocn_frc_m_access(i,j,iblk,3,1) .gt. c5) then 
+ !              ocn_frc_m_access(i,j,iblk,3,1) = min(ocn_frc_m_access(i,j,iblk,3,1), c5) ! Making sure u-velocity isn't unrealistic
+ !           elseif (uocn(i,j,iblk) .lt. -c5) then 
+ !              ocn_frc_m_access(i,j,iblk,3,1) = max(ocn_frc_m_access(i,j,iblk,3,1), -c5) ! Making sure v-velocity isn't unrealistic
+ !          endif 
+ !          if (ocn_frc_m_access(i,j,iblk,4,1) .gt. c5) then 
+ !              ocn_frc_m_access(i,j,iblk,4,1) = c5 ! Making sure v-velocity isn't unrealistic
+ !           elseif (ocn_frc_m_access(i,j,iblk,4,1) .lt. -c5) then 
+ !              ocn_frc_m_access(i,j,iblk,4,1) = -c5 ! Making sure v-velocity isn't unrealistic
+ !          endif 
+ !       enddo
+ !       enddo
+ !  enddo
+
+! ND: initialising SSS and SST
+ do iblk = 1, nblocks
+        do j = 1, ny_block
+        do i = 1, nx_block
+            ! ND: 6/10/23 remove as this causes an SST Jump sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,mmonth)
+            sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,mmonth)
+            uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,mmonth)
+            vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,mmonth)
+            
+            sss(i,j,iblk) = max(sss(i,j,iblk),c0)
+            !sst(i,j,iblk) = max(sst(i,j,iblk) - 273.15,Tf(i,j,iblk))
+
+            ! Making sure current velocities aren't unrealistic
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+
+
+            if (runtype.eq.'initial') then ! Freeze/melt is calculated within CICE
+               ! Initialise to 1.0 just to begin the run
+               !frzmlt(i,j,iblk) = -1.0_dbl_kind!(-1)*ocn_frc_m_access(i,j,iblk,1,1)
+               !frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
+               !if (j .lt. (ny_block/4)) then
+               !   frzmlt(i,j,iblk) = 1.0_dbl_kind
+               !else
+               !   frzmlt(i,j,iblk) = -1.0_dbl_kind
+               !endif
+               frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
+            else
+               frzmlt(i,j,iblk) = frzmlt(i,j,iblk)
+            endif
+        enddo 
+        enddo
+enddo
+      if (debug_forcing) then
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init'
+           vmin = global_minval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,1),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,2,1),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,1),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,3,1),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,1),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,4,1),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,1),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'frzmlt',vmin,vmax
+
+
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access_init2'
+           vmin = global_minval(ocn_frc_m_access(:,:,:,1,2),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,1,2),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,2,2),distrb_info,tmask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,2,2),distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,3,2),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,3,2),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(ocn_frc_m_access(:,:,:,4,2),distrb_info,umask)
+           vmax = global_maxval(ocn_frc_m_access(:,:,:,4,2),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+          vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+           vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'frzmlt',vmin,vmax
+
+
+         !if (my_task == master_task)  &
+           !    write (nu_diag,*) 'ocn_data_access_init 12'
+           !vmin = global_minval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+           !vmax = global_maxval(ocn_frc_m_access(:,:,:,1,12),distrb_info,tmask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'sst',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,2,12),distrb_info,tmask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'sss',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,3,12),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'uocn',vmin,vmax
+         !  vmin = global_minval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+         !  vmax = global_maxval(ocn_frc_m_access(:,:,:,4,12),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'vocn',vmin,vmax
+         ! vmin = global_minval(frzmlt(:,:,:),distrb_info,umask)
+         !  vmax = global_maxval(frzmlt(:,:,:),distrb_info,umask)
+         !  if (my_task.eq.master_task)  &
+         !      write (nu_diag,*) 'frzmlt',vmin,vmax
+            !endif
+     ! endif
+
+
+          !if (my_task == master_task)  &
+           !    write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,1)'
+           ! vmin = ocn_frc_m_access(10,200,1,1,1)
+           ! vmax = ocn_frc_m_access(10,200,1,1,1)
+            !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !if (my_task == master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,2)'
+         !   vmin = ocn_frc_m_access(10,200,1,1,2)
+         !   vmax = ocn_frc_m_access(10,200,1,1,2)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !if (my_task == master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access_init point (10,200:,1,6)'
+         !   vmin = ocn_frc_m_access(10,200,1,1,6)
+         !   vmax = ocn_frc_m_access(10,200,1,1,6)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+      endif
+
+
+
+!      else  ! binary format
+
+        !nbits = 64
+        !call ice_open (nu_forcing, sst_file, nbits)
+
+        !nrec = 0
+        !do n=1,ndfld
+        !   do m=1,12
+        !      nrec = nrec + 1
+        !      if (n == 3 .or. n == 4) then ! u-grid
+        !        call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
+        !                       field_loc_NEcorner, field_type_vector)
+        !      else   ! t-grid
+        !        call ice_read (nu_forcing, nrec, work1, 'rda8', debug_forcing, &
+        !                       field_loc_center, field_type_scalar)
+        !      endif
+        !      ocn_frc_m_access(:,:,:,n,m) = work1(:,:,:)
+        !   enddo               ! month loop
+        !enddo               ! field loop
+        !close (nu_forcing)
+
+      endif
+
+!echmod - currents cause Fram outflow to be too large
+!             ocn_frc_m_access(:,:,:,4,:) = c0
+!             ocn_frc_m_access(:,:,:,5,:) = c0
+!echmod
+
+!!!! HYCOM
+
+     !if (my_task == master_task) then
+     !  write (nu_diag,*)' '
+     !  write (nu_diag,*)'Initial ocean forcing file: ',trim(sst_file)
+     !endif
+
+     !fieldname = 'sss'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, sss, debug_forcing, &
+     !                  field_loc_center, field_type_scalar) ! t-grid
+     !call ice_close_nc(fid)
+
+     !call ocn_freezing_temperature
+
+     !sst_file = trim(ocn_data_dir)//'ice.restart.surf.nc'
+
+     !fieldname = 'sst'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, sst, debug_forcing, &
+     !                     field_loc_center, field_type_scalar) ! t-grid
+     !call ice_close_nc(fid)
+
+     !fieldname = 'u'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, uocn, debug_forcing, &
+     !                     field_loc_NEcorner, field_type_vector) ! u-grid
+     !call ice_close_nc(fid)
+
+     !fieldname = 'v'
+     !call ice_open_nc (sst_file, fid)
+     !call ice_read_nc (fid, 1 , fieldname, vocn, debug_forcing, &
+     !                     field_loc_NEcorner, field_type_vector) ! u-grid
+     !call ice_close_nc(fid)
+
+     ! Make sure sst is not less than freezing temperature Tf
+     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+     !do iblk = 1, nblocks
+     !   do j = 1, ny_block
+     !   do i = 1, nx_block
+     !      sst(i,j,iblk) = max(sst(i,j,iblk) - 273.15,Tf(i,j,iblk)) ! Converting from K to C
+     !   enddo
+     !   enddo
+     !enddo
+     !$OMP END PARALLEL DO
+
+
+      end subroutine ocn_data_access_init
+
+
+
+!=======================================================================
+
+      subroutine ocn_data_access(dt)
+
+! Interpolate monthly ocean data to timestep.
+! Restore sst if desired. sst is updated with surface fluxes in ice_ocean.F.
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_global_reductions, only: global_minval, global_maxval
+      use ice_domain, only: nblocks, distrb_info
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only: sss, sst, Tf, uocn, vocn, ss_tltx, ss_tlty, &
+            qdp, hmix
+      use ice_restart_shared, only: restart
+      use ice_grid, only: hm, tmask, umask
+
+      real (kind=dbl_kind), intent(in) :: &
+         dt      ! time step
+
+      integer (kind=int_kind) :: &
+          i, j, n, iblk   , &
+          ixm,ixp         , & ! record numbers for neighboring months
+          maxrec          , & ! maximum record number
+          recslot         , & ! spline slot for current record
+          midmonth            ! middle day of month
+
+      real (kind=dbl_kind) :: &
+          vmin, vmax
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1
+
+      character(len=*), parameter :: subname = '(ocn_data_access)'
+
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+      if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access'
+    !-------------------------------------------------------------------
+    ! monthly data
+    !
+    ! Assume that monthly data values are located in the middle of the
+    ! month.
+    !-------------------------------------------------------------------
+
+      midmonth = 15  ! data is given on 15th of every month
+!      midmonth = fix(p5 * real(daymo(mmonth),kind=dbl_kind))  ! exact middle
+
+      ! Compute record numbers for surrounding months
+      maxrec = 12
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
+      if (mday >= midmonth) ixm = -99  ! other two points will be used
+      if (mday <  midmonth) ixp = -99
+
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ND: ice_forcing '
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'mmonth: ',mmonth
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ixm, ixp: ',ixm,ixp
+
+      ! Determine whether interpolation will use values 1:2 or 2:3
+      ! recslot = 2 means we use values 1:2, with the current value (2)
+      !  in the second slot
+      ! recslot = 1 means we use values 2:3, with the current value (2)
+      !  in the first slot
+      recslot = 1                             ! latter half of month
+      if (mday < midmonth) recslot = 2        ! first half of month
+
+      ! Find interpolation coefficients
+      call interp_coeff_monthly (recslot)
+
+      sst_data(:,:,:,:) = c0
+      do n = ndfld, 1, -1
+        do iblk = 1, nblocks
+        ! use sst_data arrays as temporary work space until n=1
+        if (ixm /= -99) then  ! first half of month
+          do i = 1, nx_block
+            do j = 1, ny_block
+               sst_data(i,j,1,iblk) = ocn_frc_m_access(i,j,iblk,n,ixm)
+               sst_data(i,j,2,iblk) = ocn_frc_m_access(i,j,iblk,n,mmonth)
+            enddo
+          enddo
+        else                 ! second half of month
+          sst_data(:,:,1,iblk) = ocn_frc_m_access(:,:,iblk,n,mmonth)
+          sst_data(:,:,2,iblk) = ocn_frc_m_access(:,:,iblk,n,ixp)
+        endif
+        if (debug_forcing) then
+         if (my_task.eq.master_task) then
+            !write(nu_diag,*) 'ixm', ixm
+            !write(nu_diag,*) 'ixp', ixp
+            !write(nu_diag,*) 'mmonth', mmonth
+         endif
+         endif
+         enddo
+
+
+        ! ND: Debugging SST
+        !if (debug_forcing) then
+        !if (my_task.eq.master_task) write(nu_diag,*) 'Variable', n
+         !if (my_task.eq.master_task) write (nu_diag,*) 'Pre interpolation:'
+         !   vmin = global_minval(sst,distrb_info,tmask)
+         !   vmax = global_maxval(sst,distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst',vmin,vmax
+         !   vmin = global_minval(work1,distrb_info,tmask)
+         !   vmax = global_maxval(work1,distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'work1',vmin,vmax
+         
+
+         !   vmin = global_minval(sst_data(:,:,1,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+         !   vmax = global_maxval(sst_data(:,:,1,:),distrb_info,tmask) !MINVAL(sst_data(:,:,1,iblk))
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst_data',vmin,vmax
+         !    vmin = global_minval(sst_data(:,:,2,:),distrb_info,tmask) !MAXVAL(sst_data(:,:,1,iblk))
+         !   vmax = global_maxval(sst_data(:,:,2,:),distrb_info,tmask)
+         !if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'sst_data2',vmin,vmax
+
+
+         !   vmin = sst_data(10,200,1,1)
+         !   vmax = sst_data(10,200,1,1)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access point (10,200,1,1)',vmin,vmax
+         !   vmin = sst_data(10,200,2,1)
+         !   vmax = sst_data(10,200,2,1)
+         !   if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'ocn_data_access point (10,200,2,1)',vmin,vmax
+         !endif !debug_forcing
+
+!      vmin = global_minval(sst_data(:,:,1,iblk),distrb_info,tmask)
+!           vmax = global_maxval(sst_data(:,:,1,iblk),distrb_info,tmask)
+!           if (my_task.eq.master_task)  &
+!               write (nu_diag,*) 'sst_data(:,:,1,iblk)',vmin,vmax
+!      vmin = global_minval(sst_data(:,:,2,iblk),distrb_info,tmask)
+!           vmax = global_maxval(sst_data(:,:,2,iblk),distrb_info,tmask)
+!           if (my_task.eq.master_task)  &
+!               write (nu_diag,*) 'sst_data(:,:,2,iblk)',vmin,vmax
+
+
+        call interpolate_data (sst_data,work1)
+
+        ! if (debug_forcing) then
+        !vmin = work1(10,200,iblk)
+        !vmax = work1(10,200,iblk)
+        ! if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'work1 interp: work1 ',vmin,vmax
+
+        ! vmin = global_minval(work1(:,:,:),distrb_info,tmask)
+        ! vmax = global_maxval(work1(:,:,:),distrb_info,tmask)
+        ! if (my_task.eq.master_task)  &
+            !   write (nu_diag,*) 'POST interp: work1 ',vmin,vmax
+        ! endif
+
+        ! masking by hm is necessary due to NaNs in the data file
+        do j = 1, ny_block
+          do i = 1, nx_block
+            if (n == 2) sss    (i,j,:) = c0
+            if (n == 3) uocn   (i,j,:) = c0
+            if (n == 4) vocn   (i,j,:) = c0
+            do iblk = 1, nblocks
+              if (hm(i,j,iblk) == c1) then
+                if (n == 2) sss    (i,j,iblk) = work1(i,j,iblk)
+                if (n == 3) uocn   (i,j,iblk) = work1(i,j,iblk)
+                if (n == 4) vocn   (i,j,iblk) = work1(i,j,iblk)
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+
+      
+
+      do j = 1, ny_block
+         do i = 1, nx_block
+            sss (i,j,:) = max (sss(i,j,:), c0)
+         enddo
+      enddo
+
+      call ocn_freezing_temperature
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+            do i = 1, nx_block
+      !         work1(i,j,iblk) = max(work1(i,j,iblk) ,-c5) ! Making sure sst is not less than freezing temperature
+                work1(i,j,iblk) = max(sst(i,j,iblk), Tf(i,j,iblk))
+            enddo
+         enddo
+      enddo
+
+      
+
+      if (restore_ocn) then
+        do j = 1, ny_block
+         do i = 1, nx_block
+           sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*dt/trest
+         enddo
+        enddo
+!     else sst is only updated in ice_ocean.F
+      endif
+
+      ! initialize sst properly on first step
+      if (istep1 <= 1 .and. .not. (restart)) then
+        call interpolate_data (sst_data,sst)
+        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+        do iblk = 1, nblocks
+         do j = 1, ny_block
+          do i = 1, nx_block
+            if (hm(i,j,iblk) == c1) then
+              sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
+            else ! ND: It is land!
+              sst(i,j,iblk)  = c0
+              sss(i,j,iblk)  = c0
+              uocn(i,j,iblk) = c0
+              vocn(i,j,iblk) = c0
+            endif
+            !if (umask(i,j,iblk) .eqv. .false.) then
+            !      ! ND: Setting ocean velocities on land to 0
+            !      uocn(i,j,iblk) = c0
+            !      vocn(i,j,iblk) = c0
+            !endif
+            ! Turning off velocities in the NH
+            !if (j.gt.(ny_block/2)) uocn(i,j,iblk) = c0
+            !if (j.gt.(ny_block/2)) vocn(i,j,iblk) = c0
+             ! Making sure current velocities aren't unrealistic
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .gt. c5) uocn(i,j,iblk) = c0 
+            if (uocn(i,j,iblk) .lt. -c5) uocn(i,j,iblk) = c0 
+          enddo
+         enddo
+        enddo
+        !else
+         !   do iblk = 1, nblocks
+         !   do j = 1, ny_block
+         !   do i = 1, nx_block
+         !      if (hm(i,j,iblk) == c1) then
+         !         sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
+         !      else ! ND: It is land!
+         !         sst(i,j,iblk)  = c0
+         !         sss(i,j,iblk)  = c0
+         !         uocn(i,j,iblk) = c0
+         !         vocn(i,j,iblk) = c0
+         !      endif
+         !      if (umask(i,j,iblk) .eqv. .false.) then
+         !         ! ND: Setting ocean velocities on land to 0
+         !         uocn(i,j,iblk) = c0
+         !         vocn(i,j,iblk) = c0
+         !      endif
+         !      if (j.gt.(ny_block/2)) uocn(i,j,iblk) = c0
+         !      if (j.gt.(ny_block/2)) vocn(i,j,iblk) = c0
+         !   enddo
+         !   enddo
+         !enddo
+        !$OMP END PARALLEL DO
+      endif
+
+      if (debug_forcing) then
+         if (my_task == master_task)  &
+               write (nu_diag,*) 'ocn_data_access'
+           vmin = global_minval(sst,distrb_info,tmask)
+           vmax = global_maxval(sst,distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sst',vmin,vmax
+           vmin = global_minval(sss,distrb_info,tmask)
+           vmax = global_maxval(sss,distrb_info,tmask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'sss',vmin,vmax
+           vmin = global_minval(uocn,distrb_info,umask)
+           vmax = global_maxval(uocn,distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'uocn',vmin,vmax
+           vmin = global_minval(vocn,distrb_info,umask)
+           vmax = global_maxval(vocn,distrb_info,umask)
+           if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'vocn',vmin,vmax
+      endif
+
+      end subroutine ocn_data_access
+
+!=======================================================================
+
+
+
+
+end module ice_forcing
+
+!=======================================================================
+>>>>>>> Stashed changes

@@ -262,10 +262,17 @@
           trim(grid_type) == 'regional'     ) then
 
          if (trim(grid_format) == 'nc') then
+<<<<<<< Updated upstream
 
             call ice_open_nc(grid_file,fid_grid)
             call ice_open_nc(kmt_file,fid_kmt)
 
+=======
+            !write(nu_diag,*) 'ND: ice_grid.F90 pre grid and kmt'
+            call ice_open_nc(grid_file,fid_grid)
+            call ice_open_nc(kmt_file,fid_kmt)
+            !write(nu_diag,*) 'ND: ice_grid.F90 opened grid and kmt'
+>>>>>>> Stashed changes
             fieldname='ulat'
             call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
             fieldname='kmt'

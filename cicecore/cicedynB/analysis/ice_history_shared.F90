@@ -122,7 +122,7 @@
       integer (kind=int_kind), parameter, public :: &
          nvar = 12              , & ! number of grid fields that can be written
                                     !   excluding grid vertices
-         nvarz = 6                  ! number of category/vertical grid fields written
+         nvarz = 6                  ! number of category/vertical grid fields written, ND: changing from 6 to 7
 
       integer (kind=int_kind), public :: &
          ncat_hist              , & ! number of thickness categories written <= ncat
@@ -202,7 +202,12 @@
            f_bounds    = .true., f_NCAT       = .true., &
            f_VGRDi     = .true., f_VGRDs      = .true., &
            f_VGRDb     = .true., f_VGRDa      = .true., &
+<<<<<<< Updated upstream
            f_NFSD      = .false.
+=======
+           f_NFSD      = .false., f_NFREQ     = .true.!, &
+           !f_WFSD      = .true. ! ND: adding FSD binwidth
+>>>>>>> Stashed changes
 
       character (len=max_nstrm), public :: &
 !          f_example   = 'md', &
@@ -348,7 +353,12 @@
            f_bounds   , f_NCAT     , &
            f_VGRDi    , f_VGRDs    , &
            f_VGRDb    , f_VGRDa    , &
+<<<<<<< Updated upstream
            f_NFSD     , &
+=======
+           f_NFSD     , f_NFREQ    , &
+           !f_WFSD, &
+>>>>>>> Stashed changes
 !          f_example  , &
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
