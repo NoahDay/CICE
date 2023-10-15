@@ -6027,6 +6027,7 @@ dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
 !write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
 
  do lp_b = 1,nblocks ! should be iblk
+ !lp_b = iblk
   do lp_i=ilo,ihi
     ! Adapting the WW3 index for the current block/processor
     i = lp_i-1 + dumlonloc(1)
@@ -6409,10 +6410,10 @@ enddo ! block
  do iblk = 1, nblocks
         do j = 1, ny_block
         do i = 1, nx_block
-            sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,1)
-            sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,1)
-            uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,1)
-            vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,1)
+            sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,mmonth)
+            sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,mmonth)
+            uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,mmonth)
+            vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,mmonth)
             
             sss(i,j,iblk) = max(sss(i,j,iblk),c0)
             !sst(i,j,iblk) = max(sst(i,j,iblk) - 273.15,Tf(i,j,iblk))
@@ -6669,6 +6670,9 @@ enddo
       ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
+
+      !if (my_task.eq.master_task)  &
+      !         write (nu_diag,*) 'ixm, ixp: ',ixm,ixp
 
       ! Determine whether interpolation will use values 1:2 or 2:3
       ! recslot = 2 means we use values 1:2, with the current value (2)
