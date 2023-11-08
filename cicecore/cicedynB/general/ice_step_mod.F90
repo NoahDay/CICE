@@ -171,7 +171,7 @@
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
-          meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, wlat, &
+          meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
@@ -402,7 +402,6 @@
                       frzmlt       = frzmlt      (i,j,  iblk), &
                       rside        = rside       (i,j,  iblk), &
                       fside        = fside       (i,j,  iblk), &
-                      wlat         = wlat        (i,j,  iblk), &
                       fsnow        = fsnow       (i,j,  iblk), &
                       frain        = frain       (i,j,  iblk), &
                       fpond        = fpond       (i,j,  iblk), &
@@ -540,12 +539,12 @@
       use ice_domain, only: blocks_ice, nblocks ! Noah Day adding nblocks
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd, nfreq
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
-          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, wlat, &
+          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
           meltl, frazil_diag
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: tmask
-      use ice_state, only: aice, aicen, aice0, trcr_depend, &
+      use ice_state, only: aice, vice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
 
@@ -565,7 +564,7 @@
       use m_prams_waveice, only: waveicedatadir, fname_ww3, WAVE_METH, ww3_lat, ww3_lon, &
              ww3_dir, ww3_tm, ww3_swh, ww3_fp, ATTEN_METH, ATTEN_MODEL, attn_fac, do_coupled, &
              OVERWRITE_DIRS, ww3_dir_full, ww3_swh_full, ww3_fp_full, nww3_dt, WIM_LONG
-      use ice_forcing, only: init_wave_spec,init_wave_spec_usr, init_wave_spec_long
+      use ice_forcing, only: init_wave_spec,init_wave_spec_usr,init_wave_spec_long
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_wim
 ! ------------------------------------------------------------------------------
@@ -707,14 +706,14 @@
 
          ! find cells with aice <= puny
          !icells = 0
-         wavemask_dyn = 0
+         wavemask_dyn = 0 !216 ! ND: 06-03-23 was 0, changing to 57.5 S
          do jj = jlo, jhi
           do ii = ilo, ihi
              if (aice(ii,jj,iblk).gt.puny) then
                 !icells = icells + 1
                 !indxi(icells) = ii
                 !indxj(icells) = jj
-                if ((jj.gt.wavemask_dyn).and.(jj.lt.150)) then
+                if ((jj.gt.wavemask_dyn).and.(jj.lt.ny_block/2)) then
                  wavemask_dyn = jj
                 endif
              endif
@@ -756,7 +755,7 @@
                            !icells = icells + 1
                            !indxi(icells) = ii
                            !indxj(icells) = jj
-                           if ((jj.lt.nx_block/2).and.(jj.gt.0)) then
+                           if ((jj.lt.ny_block/2).and.(jj.gt.0)) then
                             wavemask_dyn_vec(ii) = jj
                            endif
                           endif
@@ -770,7 +769,7 @@
 !                              indxi(icells) = ii
 !                              indxj(icells) = jj
 !                              if (aice(ii,jj,iblk).lt.puny) then
-!                                 if ((jj.lt.nx_block/2).and.(jj.gt.0)) wavemask_dyn_vec(ii) = jj
+!                                 if ((jj.lt.ny_block/2).and.(jj.gt.0)) wavemask_dyn_vec(ii) = jj
 !                                 exit
 !                              endif
 !                           endif
@@ -872,6 +871,14 @@
                    endif
                 enddo
              enddo
+
+
+            do j = 1, ny_block 
+                do i = 1, nx_block 
+                  ov_conc(i,j)  = aice(i,j,iblk)
+                  ov_vol(i,j)   = vice(i,j,iblk)
+                enddo
+            enddo
 
              ! Convert from m^2s to m^2s/rad
              do j = 1, ny_block
@@ -1072,7 +1079,6 @@
                       rside      = rside     (i,j,  iblk), &
                       meltl      = meltl     (i,j,  iblk), &
                       fside      = fside     (i,j,  iblk), &
-                      wlat       = wlat      (i,j,  iblk), &
                       frzmlt     = frzmlt    (i,j,  iblk), &
                       frazil     = frazil    (i,j,  iblk), &
                       frain      = frain     (i,j,  iblk), &

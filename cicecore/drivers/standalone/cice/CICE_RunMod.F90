@@ -317,13 +317,13 @@ if (WIM.eq.1) then
     ! Convert year to character
     ! ND: Find what year the model is in.
     ! Daily file: 
-    !write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, dy, '.nc'
+    write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, dy, '.nc'
     ! Monthly file:
-    write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, '.nc' ! Monthly file
+    !write(tmpname,'(a,a,i4.4,a,a,i4.4,i2.2,a)') trim(waveicedatadir), '/', yr, '/', trim(fname_ww3), yr, mth, '.nc' ! Monthly file
 
     if (WAVE_METH.eq.1) then
       if (my_task == master_task) then
-         write(nu_diag,*) '    sub_WW3_dataread month:', mth
+         write(nu_diag,*) '    sub_WW3_dataread WAVE_METH=1', mth
          write(nu_diag,*) '    sub_WW3_dataread file: ', tmpname
          !write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.dat'
 

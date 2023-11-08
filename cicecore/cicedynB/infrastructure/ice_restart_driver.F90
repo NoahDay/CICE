@@ -426,14 +426,14 @@
          call read_restart_field(nu_restart,0,frzmlt,'ruf8', &
               'frzmlt',1,diag,field_loc_center, field_type_scalar)
         ! ND: constant initialisation when using ACCESS-OM2 restart files
-        ! do iblk = 1, nblocks
-        !    do j = 1, ny_block
-        !    do i = 1, nx_block
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
                !frzmlt(i,j,iblk) = -p001 ! ND: Initialise some freeze melt potential to kickstart the ocean (breaks with 0)
-             !  sst(i,j,iblk) = Tf(i,j,iblk) ! ND: Initialise freezing everywhere
-        !    enddo
-        !    enddo
-        ! enddo
+               sst(i,j,iblk) = max (sst(i,j,iblk), Tf(i,j,iblk)) ! ND: Initialise freezing everywhere
+            enddo
+            enddo
+         enddo
       endif
 
       !-----------------------------------------------------------------

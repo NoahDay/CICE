@@ -34,7 +34,7 @@
                             timer_bound, timer_forcing
       use ice_arrays_column, only: oceanmixed_ice, restore_bgc
       use ice_constants, only: c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c12, c15, c20, &
-                               c180, c360, c365, c1000, c3600
+                               c180, c360, c365, c1000, c3600, c100
       use ice_constants, only: p001, p01, p1, p2, p25, p5, p6
       use ice_constants, only: cm_to_m
       use ice_constants, only: field_loc_center, field_type_scalar, &
@@ -6027,7 +6027,6 @@ dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
 !write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
 
  do lp_b = 1,nblocks ! should be iblk
- !lp_b = iblk
   do lp_i=ilo,ihi
     ! Adapting the WW3 index for the current block/processor
     i = lp_i-1 + dumlonloc(1)
@@ -6410,7 +6409,7 @@ enddo ! block
  do iblk = 1, nblocks
         do j = 1, ny_block
         do i = 1, nx_block
-            sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,mmonth)
+            ! ND: 6/10/23 remove as this causes an SST Jump sst(i,j,iblk) = ocn_frc_m_access(i,j,iblk,1,mmonth)
             sss(i,j,iblk) = ocn_frc_m_access(i,j,iblk,2,mmonth)
             uocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,3,mmonth)
             vocn(i,j,iblk) = ocn_frc_m_access(i,j,iblk,4,mmonth)
@@ -6671,8 +6670,12 @@ enddo
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
-      !if (my_task.eq.master_task)  &
-      !         write (nu_diag,*) 'ixm, ixp: ',ixm,ixp
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ND: ice_forcing '
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'mmonth: ',mmonth
+      if (my_task.eq.master_task)  &
+               write (nu_diag,*) 'ixm, ixp: ',ixm,ixp
 
       ! Determine whether interpolation will use values 1:2 or 2:3
       ! recslot = 2 means we use values 1:2, with the current value (2)
@@ -6785,6 +6788,8 @@ enddo
         enddo
       enddo
 
+      
+
       do j = 1, ny_block
          do i = 1, nx_block
             sss (i,j,:) = max (sss(i,j,:), c0)
@@ -6792,6 +6797,17 @@ enddo
       enddo
 
       call ocn_freezing_temperature
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+            do i = 1, nx_block
+      !         work1(i,j,iblk) = max(work1(i,j,iblk) ,-c5) ! Making sure sst is not less than freezing temperature
+                work1(i,j,iblk) = max(sst(i,j,iblk), Tf(i,j,iblk))
+            enddo
+         enddo
+      enddo
+
+      
 
       if (restore_ocn) then
         do j = 1, ny_block

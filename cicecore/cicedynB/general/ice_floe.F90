@@ -587,12 +587,12 @@ end subroutine init_floe_0
       !print*, '... tmt=0'
       if (tmask(i,j)) then
        if (loc_swh(i,j+1).lt.ws_tol) then
-        if (cmt.ne.0) then
+      !  if (cmt.ne.0) then
          write(nu_diag,*) '>>>--------------------------------------------->>>'
          write(nu_diag,*) '                         i, j = ', i, j
          write(nu_diag,*) '                         NOT running wave-ice routine'
          write(nu_diag,*) '                      -> sig wave ht <', ws_tol
-        endif
+      !  endif
         tmt(i) = 1
         if (afice(i,j).lt.tolice.or.vfice(i,j).lt.tolh) then
          ifloe(i,j) = floe_sz_pancake
@@ -606,9 +606,10 @@ end subroutine init_floe_0
           !write(nu_diag,*) '                       -> ifloe(i,j)=', ifloe(i,j)
          endif ! END IF COMMENT
         endif  ! END IF h<tolh OR c<tolc
+
        else ! IF there are waves:
        !print*, '... tmask=true'
-       if (cmt.ne.0) then
+      ! if (cmt.ne.0) then
         write(nu_diag,*) '>>>--------------------------------------------->>>'
         write(nu_diag,*) '       INPUT          -> i,j      =', i, j
         !print*, '       INPUT          -> i,j      =', i, j
@@ -620,7 +621,8 @@ end subroutine init_floe_0
         !print*, '                      -> ppd      =', loc_ppd(i,j+1)
         write(nu_diag,*) '                      -> mwd      =', 180d0*mwd_row(i)/pi
         !print*, '                      -> mwd      =', 180d0*mwd_row(i)/pi
-       endif  ! ENDIF if (cmt.ne.0) then
+        write(nu_diag,*) '                      -> afice      =', afice(i,j)
+      ! endif  ! ENDIF if (cmt.ne.0) then
        if (do_coupled.ne.0) then
          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
@@ -793,7 +795,7 @@ end subroutine init_floe_0
     wave_spec_blk(i,j,:) = wspec_row(i,:) ! Noah Day
        endif
 
-       if (cmt.ne.0) then
+      ! if (cmt.ne.0) then
         write(nu_diag,*) '         OUTPUT       -> i,j      =', i, j
         write(nu_diag,*) '                      -> tmt      =', tmt(i)
         write(nu_diag,*) '                      -> ifloe    =', ifloe(i,j)
@@ -803,7 +805,7 @@ end subroutine init_floe_0
         write(nu_diag,*) '                      -> wspec_row=', wspec_row(i,:)
         write(nu_diag,*) '                      -> wave_spec_blk(i,j,:)      =', wave_spec_blk(i,j,:)
         write(nu_diag,*) '<<<---------------------------------------------<<<'
-       endif
+     !  endif
        endif ! END IF tmask(i,j)
       enddo ! END do i=1,nx_block
 
@@ -1068,7 +1070,7 @@ end subroutine init_floe_0
                 write(nu_diag,*) '                      -> check: swh ', loc_swh(i,j)
                 write(nu_diag,*) '                      ->        ppd ', loc_ppd(i,j)
                   dum_sm0        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,0,nu_diag)
-       	         dum_sm2        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,2,nu_diag)
+       	          dum_sm2        = fn_SpecMoment(S_init_in,nw_in,nth_in,om_in,th_in,2,nu_diag)
                 write(nu_diag,*) '                      ->        swh ', 4d0*(dum_sm0**0.5d0)
                 write(nu_diag,*) '                      ->        ppd ', &
                        											2d0*pi*((dum_sm0/dum_sm2)**0.5d0)
