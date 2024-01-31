@@ -79,7 +79,7 @@
 
    integer (kind=int_kind) :: k
 
-   integer                 :: nww3, nmth, N_tm, N_lat, N_lon, nyr
+   integer                 :: nww3, nmth, N_tm, N_lat, N_lon, nyr, nday
 
    write(nu_diag,*) '---------------------------------'
    write(nu_diag,*) 'LB: Version 1.5 03.04.17'
@@ -125,12 +125,15 @@ if (WIM.eq.1) then
   ! Initialise the indexes for WW3 reading.
   nww3 = 24*(mday-1)! Noah Day 9/2 temporary fix this 0
   nmth = mmonth
+  nday = 0
   nyr = myear
+  if (my_task == master_task) then
     write(nu_diag,*) ' Starting date is: '
     write(nu_diag,*) 'mmonth: ', mmonth
     write(nu_diag,*) 'mday: ', mday
     write(nu_diag,*) 'myear: ', myear
     write(nu_diag,*) 'idate: ', idate
+  endif
     if (WAVE_METH.eq.1) then
        call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
        allocate(ww3_swh(N_lon,N_lat))
@@ -154,25 +157,27 @@ endif ! WIM
 if (WIM.eq.1) then
   ! Update the dates.
 
-        nww3= nww3+nww3_dt
+        nww3 = nww3+nww3_dt
         if (WAVE_METH.eq.1) then
-           !write(nu_diag,*) 'LB: isteep,nww3,N_tm,nmth, mday=', istep, nww3, N_tm, nmth, mday
-           if (nww3.le.N_tm) then
-               ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
-               ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
-               ww3_dir(:,:) = ww3_dir_full(:,:,nww3)
-           else
-               ww3_swh(:,:) = ww3_swh_full(:,:,N_tm)
-               ww3_fp(:,:)  = ww3_fp_full(:,:,N_tm)
-               ww3_dir(:,:) = ww3_dir_full(:,:,N_tm)
-               deallocate(ww3_swh_full)
-               deallocate(ww3_fp_full)
-               deallocate(ww3_dir_full)
-               deallocate(ww3_lat)
-               deallocate(ww3_lon)
-               deallocate(ww3_tm)
-               call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
-           endif
+            if (my_task == master_task) then
+                write(nu_diag,*) 'LB: isteep,nww3,N_tm,nmth, mday=', istep, nww3, N_tm, nmth, mday
+            endif
+            if (nww3.le.N_tm) then
+                ww3_swh(:,:) = ww3_swh_full(:,:,nww3)
+                ww3_fp(:,:)  = ww3_fp_full(:,:,nww3)
+                ww3_dir(:,:) = ww3_dir_full(:,:,nww3)
+            else
+                ww3_swh(:,:) = ww3_swh_full(:,:,N_tm)
+                ww3_fp(:,:)  = ww3_fp_full(:,:,N_tm)
+                ww3_dir(:,:) = ww3_dir_full(:,:,N_tm)
+                deallocate(ww3_swh_full)
+                deallocate(ww3_fp_full)
+                deallocate(ww3_dir_full)
+                deallocate(ww3_lat)
+                deallocate(ww3_lon)
+                deallocate(ww3_tm)
+                call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
+            endif
         endif
 
 
@@ -191,10 +196,27 @@ if (WIM.eq.1) then
         !if (WAVE_METH.eq.1) call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon)
 
         !nww3=1-nww3_dt
-        if (nmth.ne.mmonth) then
-          nww3 = 24*(mday-1) ! if month changes reset to 1
-          nmth = mmonth
-          write(nu_diag,*) 'New month: isteep,nww3,N_tm,nmth=', istep, nww3, N_tm, nmth
+        !if (nmth.ne.mmonth) then
+        !  nww3 = 1!24*(mday-1) ! if month changes reset to 1
+        !  nmth = mmonth
+        !  if (my_task == master_task) then
+        !    write(nu_diag,*) 'New month: isteep,nww3,N_tm,nmth,nday=', istep, nww3, N_tm, nmth, nday
+        !  endif
+        !endif
+
+        if (nday.ne.mday) then
+          nww3 = 1!24*(mday-1) ! if day changes reset to 1
+          nday = mday
+          if (my_task == master_task) then
+            write(nu_diag,*) 'New day: isteep,nww3,N_tm,nmth,nday=', istep, nww3, N_tm, nmth, nday
+          endif
+          deallocate(ww3_swh_full)
+          deallocate(ww3_fp_full)
+          deallocate(ww3_dir_full)
+          deallocate(ww3_lat)
+          deallocate(ww3_lon)
+          deallocate(ww3_tm)
+          call sub_WW3_dataread(nmth,N_tm,N_lat,N_lon,nyr,mday)
         endif
 
 endif ! WIM

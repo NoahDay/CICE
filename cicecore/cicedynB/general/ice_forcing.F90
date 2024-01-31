@@ -5978,6 +5978,15 @@ call ice_HaloUpdate (mwd,             halo_info, &
   jlo = this_block%jlo
   jhi = this_block%jhi
 
+  ! Find the minimum block longitude
+   dumlon =  mod(c180*TLON(1,dum_wavemask_vec(1),iblk)/pi +c360 ,c360)
+   ! Find the closest match on the WW3 grid
+   dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
+   !write(nu_diag,*) 'BLOCK NUMBER : ', iblk
+   !write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
+   !write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
+   !write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
+
   if (cmt.ne.0) then
     write(nu_diag,*) '     c180*TLON(1,dum_wavemask_vec(1),1)/pi:', c180*TLON(1,dum_wavemask_vec(1),1)/pi
     write(nu_diag,*) '    mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360):', mod(c180*TLON(1,dum_wavemask_vec(1),1)/pi,c360)
@@ -6017,14 +6026,7 @@ call ice_HaloUpdate (mwd,             halo_info, &
     write(nu_diag,*) '<-------------------------------------------------->'
   end if
 
-! Find the minimum block longitude
-dumlon =  mod(c180*TLON(1,dum_wavemask_vec(1),iblk)/pi +c360 ,c360)
-! Find the closest match on the WW3 grid
-dumlonloc=minloc(abs(mod(ww3_lon+c360,c360)-dumlon),dim=1)
-!write(nu_diag,*) 'BLOCK NUMBER : ', iblk
-!write(nu_diag,*) 'We are seeking to find the longitude: ', dumlon
-!write(nu_diag,*) 'dumlonloc: ', dumlonloc(1)
-!write(nu_diag,*) 'Error, abs(ww3_lon-dumlon): ', abs(mod(ww3_lon+c360,c360)-dumlon)
+
 
  do lp_b = 1,nblocks ! should be iblk
   do lp_i=ilo,ihi

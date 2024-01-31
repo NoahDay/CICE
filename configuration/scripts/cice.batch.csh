@@ -315,6 +315,10 @@ cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB
 
+else if (${ICE_MACHINE} =~ nd0349*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
 
 else
   echo "${0} ERROR: ${ICE_MACHINE} unknown"
@@ -322,3 +326,4 @@ else
 endif
 
 exit 0
+
