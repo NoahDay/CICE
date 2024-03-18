@@ -267,6 +267,9 @@ end subroutine init_floe_0
 	  integer              :: idd_alp
       real(kind=dbl_kind)  :: dum_alp
 
+       ! Noah Day 2/2/24 Amplitude drop
+      logical, dimension(nx_block, nw_in) :: flg_amp_drop_global
+
 !EOP
 !
 
@@ -393,8 +396,8 @@ end subroutine init_floe_0
     	      call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j), &
  		  nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
  		 else
- 		   call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j), &
- 		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
+ 		   call sub_Uncoupled(ifloe(i,j),Lcell(i,j),vfice(i,j),afice(i,j), &
+ 		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag, flg_amp_drop_global(i,:))
  		 endif
  		! Noah Day 20/3/21 ifloe(i,j) = D1
  		endif ! ENDIF ws_tol
@@ -627,8 +630,8 @@ end subroutine init_floe_0
          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
        else
-         call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
-           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
+         call sub_Uncoupled(ifloe(i,j),Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
+           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag, flg_amp_drop_global(i,:))
        endif ! ENDIF (do_coupled.ne.0)
        !print*, '... done wave-ice routine'
        !!ifloe(i,j) = D1
@@ -887,7 +890,8 @@ end subroutine init_floe_0
             intent(in) :: &
             Lcell
        integer (kind=int_kind), intent(in)   :: dum_wavemask
-  	   integer (kind=int_kind), dimension (nx_block), intent(in)   :: dum_wavemask_vec
+  	    integer (kind=int_kind), dimension (nx_block), intent(in)   :: dum_wavemask_vec
+
   !
   !  local variables
   !
@@ -952,12 +956,17 @@ end subroutine init_floe_0
 
         integer, dimension(nx_block)                    :: tmt, tmt_hld ! WIM termination flag
 
+   ! Noah Day 2/2/24 Amplitude drop
+      logical, dimension(nx_block, nw_in) :: flg_amp_drop_global
+
   !     ! attenuation
   	  integer              :: idd_alp
       real(kind=dbl_kind)  :: dum_alp
 
   !EOP
-  !
+  !   
+      ! Initial flags for amplitude drop
+      flg_amp_drop_global(:,:) = .false.
 
   !!! Define wave mask edge and propagate waves into ice:
        if (cmt.ne.0) then
@@ -1017,7 +1026,7 @@ end subroutine init_floe_0
 
     !     loc_mwd(:,j)    = pi/6d0   !    initialise, noah day uncommented
 
-
+   
 
    ! A0. initialise with: Bretschneider
    do i=1,nx_block
@@ -1097,8 +1106,8 @@ end subroutine init_floe_0
             !write(nu_diag,*) '>>>--------------------------------------------->>>'
             !write(nu_diag,*) 'finished sub_balance'
        		   else
-       		        call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j), &
-       		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag)
+       		        call sub_Uncoupled(ifloe(i,j),Lcell(i,j),vfice(i,j),afice(i,j), &
+       		   nw_in,nth_in,om_in,th_in,k_wtr_in,S_init_in,wspec_row_hld(i,:),tmt(i),nu_diag, flg_amp_drop_global(i,:))
        		   endif
        		   !ifloe(i,j) = D1
        		endif ! ENDIF ws_tol
@@ -1372,8 +1381,8 @@ max_wavemask = dum_wavemask
                          call sub_Balance(ifloe(i,j),D1,Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
                           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
                        else
-                         call sub_Uncoupled(Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
-                           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag)
+                         call sub_Uncoupled(ifloe(i,j),Lcell(i,j),vfice(i,j),afice(i,j),nw_in,&
+                           nth_in,om_in,th_in,k_wtr_in,wspec_row(i,:),wspec_row_hld(i,:),tmt(i),nu_diag, flg_amp_drop_global(i,:))
                        endif ! ENDIF (do_coupled.ne.0)
                        !print*, '... done wave-ice routine'
                        ! Noah Day 20/3/22 ifloe(i,j) = D1
